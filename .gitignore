@@ -1,0 +1,16 @@
+.coverage
+.venv
+cover
+*.pyc
+AUTHORS
+build
+dist
+run_tests.err.log
+.tox
+*.egg
+monasca_event/versioninfo
+*.egg-info
+*.log
+.pydevproject
+.project
+.idea

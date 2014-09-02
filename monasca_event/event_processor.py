@@ -22,6 +22,7 @@ from datetime import datetime
 from time import mktime
 
 import json
+import uuid
 
 # imports for oahu
 import datetime
@@ -46,7 +47,7 @@ class TestCallback(pipeline_callback.PipelineCallback):
     def on_trigger(self, stream):
         print "Got: ", stream
         for event in stream.events:
-            print event['event_type'], event['when']
+            print event['event_type'], event['timestamp']
 
 class TestPipeline():
     """ TestPipeline generates events, intializes the pipeline with a driver and callback, and calls process_ready_streams(now) on the pipeline. """ 
@@ -57,8 +58,10 @@ class TestPipeline():
         if driver.get_num_active_streams(trigger_name) == 0:
             print ("after flush_all - no streams active")
 
-        g = notigen.EventGenerator(NOTIGEN_TEMPLATE_DIR,100,0)
+        # 100 operations per hour
+        g = notigen.EventGenerator(NOTIGEN_TEMPLATE_DIR,100)
         now = datetime.datetime.utcnow()
+        end = now + datetime.timedelta(days=1)
         nevents = 0
         unique = set()
         while nevents < 5000:
@@ -75,22 +78,19 @@ class TestPipeline():
         now += datetime.timedelta(seconds=2)
 
         # These calls would be performed by separate processes that poll
-        p.do_expiry_check(100,now)
-        p.process_ready_streams(100,now)
-        p.purge_streams(100)
-        if len(unique) == callback.triggered:
-            print ('triggered this many times: ', callback.triggered)
-        if len(unique) == callback.streams:
-            print ('this many streams: ', callback.streams)
-        #self.assertEqual(len(unique), callback.triggered)
-        #self.assertEqual(len(unique), len(callback.streams))
-        #self.assertEqual(unique, callback.request_set)
+        chunk = 100000
+        p.do_expiry_check(chunk, now)
+        
+        # sleep ahwile and then do this again.
+        p.process_ready_streams(chunk, now)
+        p.purge_streams(chunk)
 
     def _get_rules(self):
         """ create the stream rules """
         inactive = criteria.Inactive(60)
         callback = TestCallback()
-        trigger_name = "request-id"
+        #trigger_name = "request-id"
+        trigger_name = str(uuid.uuid4())
         by_request = trigger_definition.TriggerDefinition(trigger_name,
                                                           ["_context_request_id", ],
                                                           inactive, 
@@ -141,6 +141,6 @@ class EventProcessor(BaseProcessor):
     def run(self):
         
         pipeline = TestPipeline()
-        #pipeline.test_inmemory()
-        pipeline.test_mongo()
+        pipeline.test_inmemory()
+        #pipeline.test_mongo()
         

@@ -2,7 +2,11 @@ kafka:
     url: 192.168.10.4:9092
     group: monasca-event
     metrics_topic: metrics
-    events_topic: events
+    events_topic: raw-events
+    transformed_events_topic: transformed-events
+
+notigen:
+    templatedir: /Users/cindy/publicGithub/monasca-event/notigen_templates
 
 processors:
     event:

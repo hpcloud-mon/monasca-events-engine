@@ -58,10 +58,11 @@ def main(argv=None):
         realtime = int(argv[4])    
     else:
         print("Usage: " + argv[0] + " [config_file] <rate> <hours> <realtime 1/0>")
-        print("    config_file is required. Full path of the monasca_event.yaml")
-        print("    rate is optional. Operations per hour. 10 is the default")
-        print("    hours is optional. Number of hours to run. 1 is the default")
-        print("    realtime is optional. Default is false. When false the tick is moved every time events are processed.")
+        print("")
+        print("    config_file -(required) Full path of the monasca_event.yaml")
+        print("    rate - (opt) Operations per hour. 10 is the default")
+        print("    hours - (opt) Max number of hours to run. 1 is the default")
+        print("    realtime - (opt) Default is false. When false the tick is moved every time events are processed.")
         return 1
 
     print("config_file dir = ", config_file)

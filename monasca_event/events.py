@@ -15,16 +15,16 @@ class OpenstackEvent:
 
 class Event:
        
-    def fromFields(self, type, id, timestamp, **dim_kwargs):
-        self.type = type
-        self.id = id
+    def fromFields(self, type, msg_id, timestamp, **dim_kwargs):
+        self.event_type = type
+        self.message_id = msg_id
         self.timestamp = timestamp
         self.dimensions = {}
         self.dimensions = dim_kwargs
 
     def fromOpenstackEvent(self, json_message):
-        self.type = json_message[OpenstackEvent.EVENT_TYPE]
-        self.id = json_message[OpenstackEvent.REQUEST_ID] 
+        self.event_type = json_message[OpenstackEvent.EVENT_TYPE]
+        self.message_id = json_message[OpenstackEvent.REQUEST_ID] 
         self.timestamp = json_message[OpenstackEvent.EVENT_TIMESTAMP]
         # i've left the type, id , timestamp in the dimensions, i could delete them out.
         self.dimensions = {}

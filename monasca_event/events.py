@@ -1,5 +1,4 @@
 import json
-import time
 
 
 class OpenstackEvent:

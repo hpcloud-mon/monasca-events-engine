@@ -8,11 +8,16 @@ kafka:
 notigen:
     templatedir: /Users/cindy/publicGithub/monasca-event/notigen_templates
 
+winchester:
+    winchester_config: /Users/cindy/publicGithub/monasca-event/etc/winchester.yaml 
+
 processors:
     event:
         number: 1
         ttl: 14400  # In seconds, undefined for none. Alarms older than this are not processed
-
+    pipeline:
+        number: 1
+        ttl: 14400  # In seconds, undefined for none. Alarms older than this are not processed
 queues:
     finished_size: 256
 

@@ -1,0 +1,20 @@
+---
+- name: start_end_trigger
+  distinguished_by:
+  - message_id
+  - timestamp: "day"
+  expiration: "$last + 1h"
+  fire_pipeline: "test_pipeline"
+  expire_pipeline: "test_expire_pipeline"
+  match_criteria:
+  - event_type:
+    - compute.instance.create.*
+#### Traits are optional. 
+#    traits:
+#      os_distro: ubuntu
+#      memory_mb:
+#        numeric: "> 4096"
+  fire_criteria:
+  - event_type: 
+    - compute.instance.create.start
+    - compute.instance.create.end

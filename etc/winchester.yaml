@@ -1,0 +1,38 @@
+---
+###### This adds directories to the search path for other configfiles.
+#config_path: /home/winchester/etc
+config_path: /Users/cindy/publicGithub/monasca-event/etc
+## It can also be a list:
+#config_path:
+#  - /etc/winchester
+#  - /home/wherever
+
+###### logging
+log_level: debug
+## You can also use a full logging config file.
+#logging_config: logging.conf
+
+###### How often to log stats
+statistics_period: 10
+
+pipeline_worker_batch_size: 1000
+pipeline_worker_delay: 10
+
+####### You can specify extra stackdistiller trait plugins here:
+#distiller_trait_plugins:
+#    test: some.module.path:TestTraitPlugin
+
+catch_all_notifications: false
+
+database:
+    url: mysql://monapi:password@192.168.10.4/winchester
+
+distiller_config: event_definitions.yaml
+trigger_definitions: triggers.yaml
+pipeline_config: pipelines.yaml
+
+pipeline_handlers:
+#    start_end: monasca_event.pipeline_handler:StartEndHandler
+#    logger: monasca_event.pipeline_handler:LoggingHandler
+     start_end: /Users/cindy/publicGithub/monasca-event|monasca_event.pipeline_handler:StartEndHandler
+     logger: /Users/cindy/publicGithub/monasca-event|monasca_event.pipeline_handler:LoggingHandler

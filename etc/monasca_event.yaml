@@ -2,14 +2,15 @@ kafka:
     url: 192.168.10.4:9092
     group: monasca-event
     metrics_topic: metrics
-    events_topic: raw-events
+    events_topic: transformed-events
     transformed_events_topic: transformed-events
 
 notigen:
-    templatedir: /Users/cindy/publicGithub/monasca-event/notigen_templates
+    templatedir: /Users/rolandhochmuth/Documents/repos/monasca-event/notigen_templates
 
 winchester:
-    winchester_config: /Users/cindy/publicGithub/monasca-event/etc/winchester.yaml 
+    # winchester_config: /Users/cindy/publicGithub/monasca-event/etc/winchester.yaml
+    winchester_config: /Users/rolandhochmuth/Documents/repos/monasca-event/etc/winchester.yaml 
 
 processors:
     event:

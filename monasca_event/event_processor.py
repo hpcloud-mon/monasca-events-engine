@@ -15,17 +15,19 @@
 
 from kafka import KafkaClient, SimpleConsumer
 import json
+import simplejson
 import logging
 from winchester.config import ConfigManager
 from winchester.trigger_manager import TriggerManager
-
+from datetime import datetime
 
 log = logging.getLogger(__name__)
 
 
 class EventProcessor():
-    """ EventProcessor reads events from kafka, and adds them to the 
-        stacktach winchester TriggerManager
+    """
+    EventProcessor reads events from kafka, and adds them to the
+    stacktach winchester TriggerManager
     """
     def __init__(self, kafka_url, group, event_topic, winchester_config):      
         self.kafka_url = kafka_url
@@ -37,6 +39,8 @@ class EventProcessor():
                                        group,
                                        event_topic,
                                        auto_commit=True)
+        self.consumer.seek(0, 2)
+        self.consumer.provide_partition_info()
         self.config = ConfigManager.load_config_file(winchester_config)
         self.trigger_manager = TriggerManager(self.config)
 
@@ -44,25 +48,26 @@ class EventProcessor():
         for message in self.consumer:
             log.debug(message.message.value.decode('utf8'))
             decoded = json.loads(message.message.value)
-            raw_event = decoded['event']['dimensions']
+            raw_event = decoded['event']
             # add_notification will distill the event before saving it.
             self.trigger_manager.add_notification(raw_event)
 
     def consume_transformed(self):
-        # read events from kafka
         for message in self.consumer:
-            log.debug(message.message.value.decode('utf8'))
+            sub_message = message[1].message
+            envelop_str = sub_message.value
 
-            decoded = json.loads(message.message.value)
-            log.debug(json.dumps(decoded, sort_keys=True, indent=4))
-            
-            event = decoded['event']
-            log.debug('event: %s', event)
+            envelope = simplejson.loads(envelop_str)
+            event = envelope['event']
+
+            if 'timestamp' in event:
+                event['timestamp'] = datetime.strptime(event['timestamp'], "%Y-%m-%dT%H:%M:%S.%f+00:00")
+
+            if 'when' in event:
+                event['when'] = datetime.strptime(event['when'], "%Y-%m-%dT%H:%M:%S.%f+00:00")
 
             # add them to winchester TriggerManager
             self.trigger_manager.add_event(event)        
 
     def run(self):
-        self.consume_raw()
-        
-        
+        self.consume_transformed()

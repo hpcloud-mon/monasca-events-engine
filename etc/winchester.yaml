@@ -1,7 +1,8 @@
 ---
 ###### This adds directories to the search path for other configfiles.
 #config_path: /home/winchester/etc
-config_path: /Users/cindy/publicGithub/monasca-event/etc
+#config_path: /Users/cindy/publicGithub/monasca-event/etc
+config_path: /Users/rolandhochmuth/Documents/repos/monasca-event/etc
 ## It can also be a list:
 #config_path:
 #  - /etc/winchester
@@ -34,5 +35,9 @@ pipeline_config: pipelines.yaml
 pipeline_handlers:
 #    start_end: monasca_event.pipeline_handler:StartEndHandler
 #    logger: monasca_event.pipeline_handler:LoggingHandler
-     start_end: /Users/cindy/publicGithub/monasca-event|monasca_event.pipeline_handler:StartEndHandler
-     logger: /Users/cindy/publicGithub/monasca-event|monasca_event.pipeline_handler:LoggingHandler
+     #start_end: /Users/cindy/publicGithub/monasca-event|monasca_event.pipeline_handler:StartEndHandler
+     #logger: /Users/cindy/publicGithub/monasca-event|monasca_event.pipeline_handler:LoggingHandler
+
+     start_end: /Users/rolandhochmuth/Documents/repos/monasca-event|monasca_event.pipeline_handler:StartEndHandler
+     logger: /Users/rolandhochmuth/Documents/repos/monasca-event|monasca_event.pipeline_handler:LoggingHandler
+     vm_startup_time: /Users/rolandhochmuth/Documents/repos/monasca-event|monasca_event.vm_startup_time_handler:VmStartupTimeHandler

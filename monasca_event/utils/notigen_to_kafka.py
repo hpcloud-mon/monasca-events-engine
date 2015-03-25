@@ -114,7 +114,8 @@ def main(argv=None):
                     print ("the envelope:")
                     print (event_envelope)
                     key = nova_event[OpenstackEvent.EVENT_TIMESTAMP]
-                    producer.send_message(config['kafka']['events_topic'], key, event_envelope)
+                    #producer.send_message(config['kafka']['events_topic'], key, event_envelope)
+                    producer.send_message(config['kafka']['events_topic'], key, json.dumps(nova_event))
                     sendcount += 1
             if realtime:
                 now = datetime.datetime.utcnow()

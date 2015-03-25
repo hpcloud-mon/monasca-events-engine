@@ -1,6 +1,6 @@
 ---
 test_pipeline:
-    - start_end
+    - logger
 test_expire_pipeline:
     - logger
 vm_startup_time:

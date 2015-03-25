@@ -80,10 +80,29 @@ class LoggingHandler(PipelineHandlerBase):
     def handle_events(self, events, env):
         emsg = ', '.join("%s: %s" % (event['event_type'], event['message_id'])
                         for event in events)
-        logger.info("Logging Handler Received %s events: \n%s" % (len(events), emsg))
+        logger.info("Pipeline Handler stream name: %s, stream id: %s Received %s events: \n%s " % (env['stream_name'], env['stream_id'], len(events), emsg))
+        start_time = None
+        end_time = None
+        for event in events:
+            if event['event_type'] == 'compute.instance.create.start':
+                start_time = event['timestamp']
+            if event['event_type'] == 'compute.instance.create.end':
+                end_time = event['timestamp']
+            print (event)
+
+        if start_time == None or end_time == None:
+            return events
+
+        if end_time < start_time:
+            return events
+
+        #startup_time = (end_time - start_time).total_seconds()
+        
         return events
 
     def commit(self):
+        print "LoggingHandler commit called!"
+        
         pass
 
     def rollback(self):
@@ -99,6 +118,7 @@ class StartEndHandler(PipelineHandlerBase):
         return events
 
     def commit(self):
+        print ("StartEndHandler!!! in commit")
         pass
 
     def rollback(self):

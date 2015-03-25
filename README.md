@@ -1,43 +1,49 @@
 monasca-event
 =============
 
-This repo contains 3 things:
-  1. A prototype using the stacktach oahu pipeline processing libraries.
-      
-      cd monasca_event/oahu_test
-      
-      Requires (see requirements.txt): 
-          - notigen
-          - oahu
-          - PyYaml
-          - kazoo
-         
-      python main.py [~/publicGithub/monasca-event/etc/monasca_event.yaml]
+The monasca event and stream processing engine (uses stacktach-winchester).
+The event engine reads distilled events from the Kafka event topic and adds the
+distilled events and temporary streams that match stream definitions
+(filters, group-by, fire/expire criteria, fire/expire handlers) to the Mysql DB.
+When stream fire criteria has been met, the stream of events is sent to the 
+specified handler.  Stream definitions can be specified per tenant.
 
-  2. A tool to generate nova events, simulate the API, and write to kafka.
-     
-      cd monasca_event/utils
-      
-      Requires: 
-        - notigen  (clone it and sudo python setup.py install)
-        - kafka-python
-        - PyYaml
-       
-      python notigen_to_kafka.py '/Users/cindy/publicGithub/monasca-event/etc/monasca_event.yaml' 50 1
-      
-      python notigen_to_kafka.py  (prints usage)
+Under Development
 
-  3. The Paris prototype for the winchester event processing pipeline in monasca
-    
-      Based on winchester:
+# Installation
+
+## Get the Code
+
+```
+git clone https://github.com/hpcloud-mon/monasca-event
+```
+
+Requires:
+  - winchester
       https://github.com/stackforge/stacktach-winchester
- 
-      cd monasca_event
+      https://github.com/oneilcin/stacktach-winchester (fork with dynamic changes is needed till we merge)
+  - mysqlclient
+  - mysql winchester DB - currently exists in monasca-vagrant
+
+## Run it      
+```
+cd monasca_event
+python main.py ../etc/monasca_event.yaml 
+```
+
+extras
+======
+
+A tool to generate nova Openstack raw events and write to kafka raw-events topic.
+          
+Requires: 
+  - notigen  (clone it and sudo python setup.py install)
+  - kafka-python
+  - PyYaml
+
+```
+cd monasca_event/utils
+python notigen_to_kafka.py ../etc/monasca_event.yaml 100 1
      
-      install winchester
-
-      make sure you have a mysqlclient installed
-
-      mysql db needs: winchester DB, a user with access to this DB.
- 
-      python main.py '/Users/cindy/publicGithub/monasca-event/etc/monasca_event.yaml' 
+python notigen_to_kafka.py  (prints usage)
+```

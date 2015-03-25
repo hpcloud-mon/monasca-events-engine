@@ -46,7 +46,7 @@ exiting = False
 def clean_exit(signum, frame=None):
     """
     Exit all processes attempting to finish uncommited active work before exit.
-    Can be called on an os signal or no zookeeper losing connection.
+    Can be called on an os signal or on zookeeper losing connection.
     """
     global exiting
     if exiting:
@@ -102,8 +102,11 @@ def main(argv=None):
             target=EventProcessor(
                 config['kafka']['url'],
                 config['kafka']['group'],
-                #config['kafka']['transformed_events_topic'],
                 config['kafka']['events_topic'],
+                config['kafka']['fetch_size_bytes'],
+                config['kafka']['buffer_size'],
+                config['kafka']['max_buffer_size'],
+                #config['kafka']['transformed_events_topic'],
                 config['winchester']['winchester_config']
             ).run
         )

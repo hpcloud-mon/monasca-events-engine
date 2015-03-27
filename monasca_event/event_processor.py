@@ -56,7 +56,7 @@ class EventProcessor():
                                                              'event_type': 'compute.instance.create.*'}],
                                          'name': 'fc1_trigger_406904',
                                          'debug_level': 2,
-                                         'expiration': '$last + 24h',
+                                         'expiration': '$last + 15s',
                                          'fire_pipeline': 'test_pipeline',
                                          'expire_pipeline': 'test_expire_pipeline'}]
 
@@ -81,11 +81,11 @@ class EventProcessor():
                                            'hostname': 'server-462185',
                                            'host': 'publisher-302689',
                                            'instance_flavor': '512MB Standard Instance',
-                                           'instance_id': '772b2f73-3b0f-4057-b377-b65131e8532e',
+                                           'instance_id': '123-3b0f-4057-b377-b65131e8532e',
                                            'os_version': '12.04',
                                            'state': 'building',
                                            'os_architecture': 'x64',
-                                           'timestamp': datetime.now(),
+                                           'timestamp': datetime.utcnow(),
                                            'request_id': 'req-d096b6de-f451-4d00-bff0-646a8c8a23c3',
                                            'message_id': '19701f6c-f51f-4ecb-85fb-7db40277627d'},
                                           {'os_distro': 'com.ubuntu',
@@ -97,14 +97,31 @@ class EventProcessor():
                                            'hostname': 'server-462185',
                                            'host': 'publisher-302689',
                                            'instance_flavor': '512MB Standard Instance',
-                                           'instance_id': '772b2f73-3b0f-4057-b377-b65131e8532e',
+                                           'instance_id': '123-3b0f-4057-b377-b65131e8532e',
                                            'os_version': '12.04',
                                            'state': 'active',
                                            'os_architecture': 'x64',
-                                           'timestamp': datetime.now(),
-                                              'request_id': 'req-d096b6de-f451-4d00-bff0-646a8c8a23c3',
-                                              'launched_at': datetime.now(),
-                                              'event_type': 'compute.instance.create.end'}]
+                                           'timestamp': datetime.utcnow(),
+                                           'request_id': 'req-d096b6de-f451-4d00-bff0-646a8c8a23c3',
+                                           'launched_at': datetime.utcnow(),
+                                           'event_type': 'compute.instance.create.end'}]
+
+    distilled_events_fc1_tenant_406904_missing_end = [{'os_distro': 'com.ubuntu',
+                                           'event_type': 'compute.instance.create.start',
+                                           'service': 'publisher-302689',
+                                           'instance_type': '512MB Standard Instance',
+                                           'tenant_id': '406904',
+                                           'instance_flavor_id': '2',
+                                           'hostname': 'server-462185',
+                                           'host': 'publisher-302689',
+                                           'instance_flavor': '512MB Standard Instance',
+                                           'instance_id': '333-3b0f-4057-b377-b65131e8532e',
+                                           'os_version': '12.04',
+                                           'state': 'building',
+                                           'os_architecture': 'x64',
+                                           'timestamp': datetime.utcnow(),
+                                           'request_id': 'req-d096b6de-f451-4d00-bff0-646a8c8a23c3',
+                                           'message_id': '19701f6c-f51f-4ecb-85fb-7db40277627d'}]
 
     distilled_events_fc1_tenant_123456 = [{'os_distro': 'com.ubuntu',
                                            'event_type': 'compute.instance.create.start',
@@ -115,11 +132,11 @@ class EventProcessor():
                                            'hostname': 'server-462185',
                                            'host': 'publisher-302689',
                                            'instance_flavor': '512MB Standard Instance',
-                                           'instance_id': '772b2f73-3b0f-4057-b377-b65131e8532e',
+                                           'instance_id': '456-3b0f-4057-b377-b65131e8532e',
                                            'os_version': '12.04',
                                            'state': 'building',
                                            'os_architecture': 'x64',
-                                           'timestamp': datetime.now(),
+                                           'timestamp': datetime.utcnow(),
                                            'request_id': 'req-d096b6de-f451-4d00-bff0-646a8c8a23c3',
                                            'message_id': '19701f6c-f51f-4ecb-85fb-7db40277627d'},
                                           {'os_distro': 'com.ubuntu',
@@ -131,11 +148,11 @@ class EventProcessor():
                                            'hostname': 'server-462185',
                                            'host': 'publisher-302689',
                                            'instance_flavor': '512MB Standard Instance',
-                                           'instance_id': '772b2f73-3b0f-4057-b377-b65131e8532e',
+                                           'instance_id': '456-3b0f-4057-b377-b65131e8532e',
                                            'os_version': '12.04',
                                            'state': 'active',
                                            'os_architecture': 'x64',
-                                           'timestamp': datetime.now(),
+                                           'timestamp': datetime.utcnow(),
                                               'request_id': 'req-d096b6de-f451-4d00-bff0-646a8c8a23c3',
                                               'launched_at': datetime.now(),
                                               'event_type': 'compute.instance.create.end'}]
@@ -167,7 +184,7 @@ class EventProcessor():
                                            'os_version': '12.04',
                                            'state': 'building',
                                            'os_architecture': 'x64',
-                                           'timestamp': datetime.now(),
+                                           'timestamp': datetime.utcnow(),
                                            'request_id': 'req-d096b6de-f451-4d00-bff0-646a8c8a23c3',
                                            'message_id': '19701f6c-f51f-4ecb-85fb-7db40277627d'},
                                           {'os_distro': 'com.ubuntu',
@@ -183,7 +200,7 @@ class EventProcessor():
                                            'os_version': '12.04',
                                            'state': 'active',
                                            'os_architecture': 'x64',
-                                           'timestamp': datetime.now(),
+                                           'timestamp': datetime.utcnow(),
                                               'request_id': 'req-d096b6de-f451-4d00-bff0-646a8c8a23c3',
                                               'launched_at': datetime.now(),
                                               'event_type': 'compute.instance.create.end'},
@@ -200,9 +217,9 @@ class EventProcessor():
                                            'os_version': '12.04',
                                            'state': 'active',
                                            'os_architecture': 'x64',
-                                           'timestamp': datetime.now(),
+                                           'timestamp': datetime.utcnow(),
                                               'request_id': 'req-d096b6de-f451-4d00-bff0-646a8c8a23c3',
-                                              'launched_at': datetime.now(),
+                                              'launched_at': datetime.utcnow(),
                                               'event_type': 'compute.instance.exists'}]
     distilled_events_fc2_tenant_500001 = [{'os_distro': 'com.ubuntu',
                                            'event_type': 'compute.instance.create.start',
@@ -217,7 +234,7 @@ class EventProcessor():
                                            'os_version': '12.04',
                                            'state': 'building',
                                            'os_architecture': 'x64',
-                                           'timestamp': datetime.now(),
+                                           'timestamp': datetime.utcnow(),
                                            'request_id': 'req-d096b6de-f451-4d00-bff0-646a8c8a23c3',
                                            'message_id': '19701f6c-f51f-4ecb-85fb-7db40277627d'},
                                           {'os_distro': 'com.ubuntu',
@@ -233,9 +250,9 @@ class EventProcessor():
                                            'os_version': '12.04',
                                            'state': 'active',
                                            'os_architecture': 'x64',
-                                           'timestamp': datetime.now(),
+                                           'timestamp': datetime.utcnow(),
                                               'request_id': 'req-d096b6de-f451-4d00-bff0-646a8c8a23c3',
-                                              'launched_at': datetime.now(),
+                                              'launched_at': datetime.utcnow(),
                                               'event_type': 'compute.instance.create.end'},
                                           {'os_distro': 'com.ubuntu',
                                            'message_id': '2ae21707-70ae-48a2-89c0-b08b11dc0b1a',
@@ -250,7 +267,7 @@ class EventProcessor():
                                            'os_version': '12.04',
                                            'state': 'active',
                                            'os_architecture': 'x64',
-                                           'timestamp': datetime.now(),
+                                           'timestamp': datetime.utcnow(),
                                               'request_id': 'req-d096b6de-f451-4d00-bff0-646a8c8a23c3',
                                               'event_type': 'compute.instance.exists'}]
 
@@ -320,30 +337,37 @@ class EventProcessor():
         # add trigger def
         self.trigger_manager.add_trigger_definition(
             EventProcessor.trig_def_fc1_tenant406904_filter)
+        
+        # add trigger def
+        self.trigger_manager.add_trigger_definition(
+            EventProcessor.trig_def_fc1_tenant123456_filter)
+
+        #self.trigger_manager.add_trigger_definition(EventProcessor.trig_def_fc1)
         # test sending events
         for e in EventProcessor.distilled_events_fc1_tenant_406904:
             self._add_unique_event(e)
         for e in EventProcessor.distilled_events_fc1_tenant_123456:
             self._add_unique_event(e)
-
-        # add trigger def
-        self.trigger_manager.add_trigger_definition(
-            EventProcessor.trig_def_fc1_tenant123456_filter)
-
-        # delete trigger def
-        self.trigger_manager.delete_trigger_definition('fc1_trigger_123456')
-
-        self.trigger_manager.add_trigger_definition(
-            EventProcessor.trig_def_fc2_rackspace_billing)
-        for e in EventProcessor.distilled_events_fc1_tenant_123456:
-            self._add_unique_event(e)
-        for e in EventProcessor.distilled_events_fc1_tenant_406904:
+        for e in EventProcessor.distilled_events_fc1_tenant_406904_missing_end:
             self._add_unique_event(e)
 
         for e in EventProcessor.distilled_events_fc2_tenant_222333:
             self._add_unique_event(e)
-        for e in EventProcessor.distilled_events_fc2_tenant_500001:
-            self._add_unique_event(e)
+
+        # delete trigger def
+        #self.trigger_manager.delete_trigger_definition('fc1_trigger_123456')
+
+        #self.trigger_manager.add_trigger_definition(EventProcessor.trig_def_fc2_rackspace_billing)
+        #for e in EventProcessor.distilled_events_fc1_tenant_123456:
+        #    self._add_unique_event(e)
+        #for e in EventProcessor.distilled_events_fc1_tenant_406904:
+        #    self._add_unique_event(e)
+
+        #for e in EventProcessor.distilled_events_fc2_tenant_222333:
+        #    self._add_unique_event(e)
+        #for e in EventProcessor.distilled_events_fc2_tenant_500001:
+        #    self._add_unique_event(e)
+
 
     def run(self):
         ''' The Event Processor needs to initialize the TriggerManager with
@@ -354,4 +378,4 @@ class EventProcessor():
         # self.consume_raw()
 
         self.add_test_distilled_events()
-        time.sleep(10)
+        time.sleep(120)

@@ -48,16 +48,17 @@ class PipelineProcessor():
     
         #  add trigger defs from the DB at startup
         self.pipe.add_trigger_definition(EventProcessor.trig_def_fc1_tenant406904_filter)
+        self.pipe.add_trigger_definition(EventProcessor.trig_def_fc1_tenant123456_filter)
         self.main_loop()
         
     def main_loop(self):
         while True:
             
             # read from kafka stream-def-event topic and add any new trigger definitions
-            self.pipe.add_trigger_definition(EventProcessor.trig_def_fc1_tenant123456_filter)
-            self.pipe.add_trigger_definition(EventProcessor.trig_def_fc2_rackspace_billing)
+            #self.pipe.add_trigger_definition(EventProcessor.trig_def_fc1_tenant123456_filter)
+            #self.pipe.add_trigger_definition(EventProcessor.trig_def_fc2_rackspace_billing)
             
-            self.pipe.delete_trigger_definition('fc1_trigger_123456')
+            #self.pipe.delete_trigger_definition('fc1_trigger_123456')
                        
             fire_ct = self.pipe.process_ready_streams(self.pipe.pipeline_worker_batch_size)
             expire_ct = self.pipe.process_ready_streams(self.pipe.pipeline_worker_batch_size,

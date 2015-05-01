@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2014 Hewlett-Packard Development Company, L.P.
+# Copyright (c) 2015 Hewlett-Packard Development Company, L.P.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,16 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""" This is the entry point for the monasca event processing engine. 
+""" Monasca Event Processing Engine
+
+    This is the entry point for the monasca event processing engine.
     To use it pass in the path of the monasca_event.yaml file.
         python main.py [monasca_event.yaml]
-        
+
     The EventProcessor process will read transformed events from kafka
     and add them to the stacktach TriggerManager.
-    
-    The PipelineProcessor process will start up the stacktach 
-    PipelineManager which loads handlers, and calls them when
-    streams are ready and expired.
+
+    The PipelineProcessor process will start up the stacktach
+    PipelineManager which loads handlers, periodically checks for
+    ready and expired streams, and calls the handlers associated with
+    the ready and expired streams.
 """
 
 import logging
@@ -43,6 +46,7 @@ log = logging.getLogger(__name__)
 processors = []  # global list to facilitate clean signal handling
 exiting = False
 
+
 def clean_exit(signum, frame=None):
     """
     Exit all processes attempting to finish uncommited active work before exit.
@@ -52,7 +56,9 @@ def clean_exit(signum, frame=None):
     if exiting:
         # Since this is set up as a handler for SIGCHLD when this kills one child it gets another signal, the global
         # exiting avoids this running multiple times.
-        log.debug('Exit in progress clean_exit received additional signal %s' % signum)
+        log.debug(
+            'Exit in progress clean_exit received additional signal %s' %
+            signum)
         return
 
     log.info('Received signal %s, beginning graceful shutdown.' % signum)
@@ -96,41 +102,36 @@ def main(argv=None):
     # create EventProcessor(s)
     num_event_processors = config['processors']['event']['number']
     log.info('num_event_processors %d', num_event_processors)
-    for x in xrange(0, num_event_processors):       
-        print("constructing EventProcessor")
-        kafka_event_processor = multiprocessing.Process(
+    for x in xrange(0, num_event_processors):
+        event_processor = multiprocessing.Process(
             target=EventProcessor(
-                config['kafka']['url'],
-                config['kafka']['group'],
-                config['kafka']['events_topic'],
-                config['kafka']['fetch_size_bytes'],
-                config['kafka']['buffer_size'],
-                config['kafka']['max_buffer_size'],
-                #config['kafka']['transformed_events_topic'],
+                config['kafka'],
                 config['winchester']['winchester_config']
             ).run
         )
-        processors.append(kafka_event_processor)
-        
+        processors.append(event_processor)
+
     # create PipelineProcessor(s)
     num_pipeline_processors = config['processors']['pipeline']['number']
     log.info('num_pipeline_processors %d', num_pipeline_processors)
-    for x in xrange(0, num_event_processors):       
+    for x in xrange(0, num_pipeline_processors):
         print("constructing PipelineProcessor")
         pipeline_processor = multiprocessing.Process(
             target=PipelineProcessor(
+                config['kafka'],
                 config['winchester']['winchester_config']
             ).run
         )
         processors.append(pipeline_processor)
 
-    ## Start
+    # Start
     try:
         log.info('Starting processes')
         for process in processors:
             process.start()
 
-        # The signal handlers must be added after the processes start otherwise they run on all processes
+        # The signal handlers must be added after the processes start otherwise
+        # they run on all processes
         signal.signal(signal.SIGCHLD, clean_exit)
         signal.signal(signal.SIGINT, clean_exit)
         signal.signal(signal.SIGTERM, clean_exit)

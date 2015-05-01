@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 @six.add_metaclass(abc.ABCMeta)
 class PipelineHandlerBase(object):
+
     """Base class for Pipeline handlers.
 
        Pipeline handlers perform the actual processing on a set of events
@@ -21,14 +22,14 @@ class PipelineHandlerBase(object):
        events will stop, and each handler's .rollback() method will be called."""
 
     def __init__(self, **kw):
-       """Setup the pipeline handler.
+        """Setup the pipeline handler.
 
-          A new instance of each handler for a pipeline is used for each
-          stream (set of events) processed.
+           A new instance of each handler for a pipeline is used for each
+           stream (set of events) processed.
 
-          :param kw: The parameters listed in the pipeline config file for
-                     this handler (if any).
-        """
+           :param kw: The parameters listed in the pipeline config file for
+                      this handler (if any).
+         """
 
     @abc.abstractmethod
     def handle_events(self, events, env):
@@ -79,8 +80,10 @@ class LoggingHandler(PipelineHandlerBase):
 
     def handle_events(self, events, env):
         emsg = ', '.join("%s: %s" % (event['event_type'], event['message_id'])
-                        for event in events)
-        logger.info("Pipeline Handler stream name: %s, stream id: %s Received %s events: \n%s " % (env['stream_name'], env['stream_id'], len(events), emsg))
+                         for event in events)
+        logger.info(
+            "Pipeline Handler stream name: %s, stream id: %s Received %s events: \n%s " %
+            (env['stream_name'], env['stream_id'], len(events), emsg))
         start_time = None
         end_time = None
         for event in events:
@@ -90,19 +93,19 @@ class LoggingHandler(PipelineHandlerBase):
                 end_time = event['timestamp']
             print (event)
 
-        if start_time == None or end_time == None:
+        if start_time is None or end_time is None:
             return events
 
         if end_time < start_time:
             return events
 
         #startup_time = (end_time - start_time).total_seconds()
-        
+
         return events
 
     def commit(self):
         print "LoggingHandler commit called!"
-        
+
         pass
 
     def rollback(self):
@@ -113,8 +116,10 @@ class StartEndHandler(PipelineHandlerBase):
 
     def handle_events(self, events, env):
         emsg = ', '.join("%s: %s" % (event['event_type'], event['message_id'])
-                        for event in events)
-        logger.info("StartEndHandler Received %s events: \n%s" % (len(events), emsg))
+                         for event in events)
+        logger.info(
+            "StartEndHandler Received %s events: \n%s" %
+            (len(events), emsg))
         return events
 
     def commit(self):

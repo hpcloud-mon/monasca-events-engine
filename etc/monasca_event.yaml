@@ -1,13 +1,16 @@
 kafka:
     url: 192.168.10.4:9092
-    group: monasca-event
-    metrics_topic: metrics
+    event_group: monasca-event
+    stream_def_group: streams_1
+    stream_def_pipe_group: streams_pipe_1
     events_topic: raw-events
     transformed_events_topic: transformed-events
-    fetch_size_bytes: 32768
-    buffer_size: 32768
+    stream_def_topic: stream-definitions
+    notifications_topic: notification-events
+    events_fetch_size_bytes: 32768
+    events_buffer_size: 32768
     # 8 times buffer size
-    max_buffer_size: 262144
+    events_max_buffer_size: 262144
 
 winchester:
     winchester_config: ../etc/winchester.yaml 
@@ -15,12 +18,8 @@ winchester:
 processors:
     event:
         number: 1
-        ttl: 14400  # In seconds, undefined for none. Alarms older than this are not processed
     pipeline:
         number: 1
-        ttl: 14400  # In seconds, undefined for none. Alarms older than this are not processed
-queues:
-    finished_size: 256
 
 zookeeper:
     url: 192.168.10.4:2181
@@ -52,4 +51,4 @@ logging: # Used in logging.dictConfig
     root:
         handlers:
             - console
-        level: INFO
+        level: DEBUG

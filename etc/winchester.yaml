@@ -37,4 +37,3 @@ pipeline_handlers:
 #    logger: monasca_event.pipeline_handler:LoggingHandler
      start_end: ./|monasca_event.pipeline_handler:StartEndHandler
      logger: ./|monasca_event.pipeline_handler:LoggingHandler
-     vm_startup_time: ./|monasca_event.vm_startup_time_handler:VmStartupTimeHandler

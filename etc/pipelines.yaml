@@ -3,5 +3,3 @@ test_pipeline:
     - logger
 test_expire_pipeline:
     - logger
-vm_startup_time:
-    - vm_startup_time

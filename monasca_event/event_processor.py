@@ -13,16 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from datetime import datetime
 import iso8601
 import json
-from kafka import KafkaClient, SimpleConsumer
+from kafka import KafkaClient
+from kafka import SimpleConsumer
 import logging
-import simplejson
-import time
 import threading
-import uuid
-
 
 from winchester.config import ConfigManager
 from winchester.trigger_manager import TriggerManager
@@ -61,16 +57,17 @@ def stream_definition_consumer(kafka_config, lock, trigger_manager):
     group = kafka_config['stream_def_group']
     topic = kafka_config['stream_def_topic']
     kafka = KafkaClient(kafka_url)
-    consumer = SimpleConsumer(kafka,
-                              group,
-                              topic,
-                              auto_commit=True,
-                              # auto_commit_every_n=None,
-                              # auto_commit_every_t=None,
-                              # iter_timeout=1,
-                              fetch_size_bytes=kafka_config['events_fetch_size_bytes'],
-                              buffer_size=kafka_config['events_buffer_size'],
-                              max_buffer_size=kafka_config['events_max_buffer_size'])
+    consumer = SimpleConsumer(
+        kafka,
+        group,
+        topic,
+        auto_commit=True,
+        # auto_commit_every_n=None,
+        # auto_commit_every_t=None,
+        # iter_timeout=1,
+        fetch_size_bytes=kafka_config['events_fetch_size_bytes'],
+        buffer_size=kafka_config['events_buffer_size'],
+        max_buffer_size=kafka_config['events_max_buffer_size'])
 
     consumer.seek(0, 2)
 
@@ -102,17 +99,18 @@ def event_consumer(kafka_config, lock, trigger_manager):
     # reading events sent from API POST Event now
     topic = kafka_config['events_topic']
     kafka = KafkaClient(kafka_url)
-    consumer = SimpleConsumer(kafka,
-                              group,
-                              topic,
-                              auto_commit=True,
-                              # auto_commit_every_n=None,
-                              # auto_commit_every_t=None,
-                              # iter_timeout=1,
-                              fetch_size_bytes=kafka_config[
-                                  'events_fetch_size_bytes'],
-                              buffer_size=kafka_config['events_buffer_size'],
-                              max_buffer_size=kafka_config['events_max_buffer_size'])
+    consumer = SimpleConsumer(
+        kafka,
+        group,
+        topic,
+        auto_commit=True,
+        # auto_commit_every_n=None,
+        # auto_commit_every_t=None,
+        # iter_timeout=1,
+        fetch_size_bytes=kafka_config['events_fetch_size_bytes'],
+        buffer_size=kafka_config['events_buffer_size'],
+        max_buffer_size=kafka_config['events_max_buffer_size'])
+
     consumer.seek(0, 2)
 
     for e in consumer:
@@ -121,7 +119,7 @@ def event_consumer(kafka_config, lock, trigger_manager):
         envelope = json.loads(message.value)
         event = envelope['event']
         # convert iso8601 string to a datetime for winchester
-        # Note: the distiller knows how to convert these, based on
+        # Note: the distiller knows how to convert these based on
         # event_definitions.yaml
         if 'timestamp' in event:
             event['timestamp'] = iso8601.parse_date(
@@ -137,17 +135,20 @@ def event_consumer(kafka_config, lock, trigger_manager):
         lock.release()
 
 
-class EventProcessor():
+class EventProcessor(object):
 
-    """  EventProcessor
+    """EventProcessor
 
-    The EventProcessor reads distilled events from the kafka 'transformed-events' topic, and adds them to the
-    stacktach winchester TriggerManager. Adding distilled events to the TriggerManager adds all distilled 
-    events into the Mysql DB.  The EventProcessor reads stream-definitions from the kafka 'stream-definitions' 
+    The EventProcessor reads distilled events from the kafka
+    'transformed-events' topic, and adds them to the stacktach winchester
+    TriggerManager. Adding distilled events to the TriggerManager adds all
+    distilled events into the Mysql DB.  The EventProcessor reads
+    stream-definitions from the kafka 'stream-definitions'
     topic and adds them to the stacktach TriggerManager.
-    The TriggerManager keeps temporary streams of events in Mysql - filtering by 'match criteria'
-    and grouping by 'distinguished by' for each stream definition.
-    The streams are deleted when the fire criteria has been met.
+    The TriggerManager keeps temporary streams of events in Mysql -
+    filtering by 'match criteria' and grouping by 'distinguished by'
+    for each stream definition.  The streams are deleted when the fire
+    criteria has been met.
     """
 
     def __init__(self, kafka_config, winchester_config):
@@ -159,36 +160,35 @@ class EventProcessor():
     # consume_raw is not used, but we could do the transform once here for
     # openstack events
     def consume_raw(self):
-        ''' Reads raw Openstack events from the raw-events topic.
-            The winchester config defines a path to event_definitions.yaml
-            which contains the transform instructions.  (We could have a
-            standard Openstack transform similar to what Rackspace uses.)
-            The TriggerManager add_notifications call will transform the events
-            first and then do the normal processing. '''
         for message in self.consumer:
             decoded = json.loads(message.message.value)
             self.trigger_manager.add_notification(decoded)
 
     def run(self):
-        ''' The Event Processor needs to initialize the TriggerManager with
-        Trigger Defs from the DB at startup.  It will read the stream-def-events kafka topic for
-        the addition/deletion of stream-defs from the API.  It will read the transformed-events
+        """Initialize and start threads.
+
+        The Event Processor needs to initialize the TriggerManager with
+        Trigger Defs from the DB at startup.  It will read the
+        stream-def-events kafka topic for the addition/deletion of
+        stream-defs from the API.  It will read the transformed-events
         kafka topic for distilled event processing.
-        '''
+        """
 
         # Initialization
         self.tm_lock = threading.Lock()
         self.trigger_manager = TriggerManager(self.config_mgr)
 
-        # TODO read stream-definitions from DB at startup and add
+        # TODO(cindy) read stream-definitions from DB at startup and add
 
-        self.stream_def_thread = threading.Thread(name='stream_defs',
-                                                  target=stream_definition_consumer,
-                                                  args=(self.kafka_config, self.tm_lock, self.trigger_manager,))
+        self.stream_def_thread = threading.Thread(
+            name='stream_defs',
+            target=stream_definition_consumer,
+            args=(self.kafka_config, self.tm_lock, self.trigger_manager,))
 
-        self.event_thread = threading.Thread(name='events',
-                                             target=event_consumer,
-                                             args=(self.kafka_config, self.tm_lock, self.trigger_manager,))
+        self.event_thread = threading.Thread(
+            name='events',
+            target=event_consumer,
+            args=(self.kafka_config, self.tm_lock, self.trigger_manager,))
 
         self.stream_def_thread.start()
         self.event_thread.start()

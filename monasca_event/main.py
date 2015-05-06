@@ -48,13 +48,16 @@ exiting = False
 
 
 def clean_exit(signum, frame=None):
-    """
-    Exit all processes attempting to finish uncommited active work before exit.
-    Can be called on an os signal or on zookeeper losing connection.
+    """clean exit
+
+       Exit all processes attempting to finish uncommited active
+       work before exit. Can be called on an os signal or on zookeeper
+       losing connection.
     """
     global exiting
     if exiting:
-        # Since this is set up as a handler for SIGCHLD when this kills one child it gets another signal, the global
+        # Since this is set up as a handler for SIGCHLD when this
+        # kills one child it gets another signal, the global
         # exiting avoids this running multiple times.
         log.debug(
             'Exit in progress clean_exit received additional signal %s' %

@@ -14,7 +14,8 @@
 # limitations under the License.
 
 import json
-from kafka import KafkaClient, SimpleConsumer
+from kafka import KafkaClient
+from kafka import SimpleConsumer
 import logging
 from logging.config import fileConfig
 import threading
@@ -33,17 +34,17 @@ def pipe_stream_definition_consumer(kafka_config, lock, pipe):
     group = kafka_config['stream_def_pipe_group']
     topic = kafka_config['stream_def_topic']
     kafka = KafkaClient(kafka_url)
-    consumer = SimpleConsumer(kafka,
-                              group,
-                              topic,
-                              auto_commit=True,
-                              # auto_commit_every_n=None,
-                              # auto_commit_every_t=None,
-                              # iter_timeout=1,
-                              fetch_size_bytes=kafka_config[
-                                  'events_fetch_size_bytes'],
-                              buffer_size=kafka_config['events_buffer_size'],
-                              max_buffer_size=kafka_config['events_max_buffer_size'])
+    consumer = SimpleConsumer(
+        kafka,
+        group,
+        topic,
+        auto_commit=True,
+        # auto_commit_every_n=None,
+        # auto_commit_every_t=None,
+        # iter_timeout=1,
+        fetch_size_bytes=kafka_config['events_fetch_size_bytes'],
+        buffer_size=kafka_config['events_buffer_size'],
+        max_buffer_size=kafka_config['events_max_buffer_size'])
 
     consumer.seek(0, 2)
 
@@ -69,15 +70,16 @@ def pipe_stream_definition_consumer(kafka_config, lock, pipe):
             log.error('Unknown event received on stream_def_topic')
 
 
-class PipelineProcessor():
+class PipelineProcessor(object):
 
-    """ Pipeline Processor
+    """Pipeline Processor
 
-        PipelineProcessor uses the stacktach PipelineManager to load pipeline handlers, and
-        process ready and expired streams. The PipelineManager contains a TriggerManager so that
-        handlers can optionally add more events to the TriggerManager filtered stream.
-        The TriggerManager within the PipelineManager will need to be initialized with
-        stream definitions dynamically.
+        PipelineProcessor uses the stacktach PipelineManager to
+        load pipeline handlers, and process ready and expired streams.
+        The PipelineManager contains a TriggerManager so that
+        handlers can optionally add more events to the TriggerManager
+        filtered stream. The TriggerManager within the PipelineManager
+        will need to be initialized with stream definitions dynamically.
     """
 
     def __init__(self, kafka_config, winchester_config):
@@ -99,16 +101,18 @@ class PipelineProcessor():
         self.pm_lock = threading.Lock()
         self.pipe = PipelineManager(self.config_mgr)
 
-        #  TODO add trigger defs from the DB at startup
+        #  TODO(cindy) add trigger defs from the DB at startup
 
         # start threads
-        self.stream_def_thread = threading.Thread(name='stream_defs_pipe',
-                                                  target=pipe_stream_definition_consumer,
-                                                  args=(self.kafka_config, self.pm_lock, self.pipe,))
+        self.stream_def_thread = threading.Thread(
+            name='stream_defs_pipe',
+            target=pipe_stream_definition_consumer,
+            args=(self.kafka_config, self.pm_lock, self.pipe,))
 
-        self.pipeline_ready_thread = threading.Thread(name='pipeline',
-                                                      target=self.pipeline_ready_processor,
-                                                      args=(self.pm_lock, self.pipe,))
+        self.pipeline_ready_thread = threading.Thread(
+            name='pipeline',
+            target=self.pipeline_ready_processor,
+            args=(self.pm_lock, self.pipe,))
 
         self.stream_def_thread.start()
         self.pipeline_ready_thread.start()
@@ -123,8 +127,9 @@ class PipelineProcessor():
             lock.acquire()
             fire_ct = pipe.process_ready_streams(
                 pipe.pipeline_worker_batch_size)
-            expire_ct = pipe.process_ready_streams(pipe.pipeline_worker_batch_size,
-                                                   expire=True)
+            expire_ct = pipe.process_ready_streams(
+                pipe.pipeline_worker_batch_size,
+                expire=True)
             lock.release()
 
             if (pipe.current_time() -

@@ -13,13 +13,15 @@ class PipelineHandlerBase(object):
 
        Pipeline handlers perform the actual processing on a set of events
        captured by a stream. The handlers are chained together, each handler
-       in a pipeline is called in order, and receives the output of the previous
-       handler.
+       in a pipeline is called in order, and receives the output of the
+       previous handler.
 
        Once all of the handlers in a pipeline have successfully processed the
        events (with .handle_events() ), each handler's .commit() method will be
-       called. If any handler in the chain raises an exception, processing of
-       events will stop, and each handler's .rollback() method will be called."""
+       called. If any handler in the chain raises an exception, processing
+       of events will stop, and each handler's .rollback() method will be
+       called.
+       """
 
     def __init__(self, **kw):
         """Setup the pipeline handler.
@@ -33,7 +35,7 @@ class PipelineHandlerBase(object):
 
     @abc.abstractmethod
     def handle_events(self, events, env):
-        """ This method handles the actual event processing.
+        """This method handles the actual event processing.
 
             This method receives a list of events and should return a list of
             events as well. The return value of this method will be passed to
@@ -59,8 +61,7 @@ class PipelineHandlerBase(object):
 
     @abc.abstractmethod
     def commit(self):
-        """ Called when each handler in this pipeline has successfully
-            completed.
+        """Called when each handler in this pipeline has completed.
 
             If you have operations with side effects, preform them here.
             Exceptions raised here will be logged, but otherwise ignored.
@@ -68,8 +69,7 @@ class PipelineHandlerBase(object):
 
     @abc.abstractmethod
     def rollback(self):
-        """ Called if there is an error for any handler while processing a list
-        of events.
+        """Called if there is an error in the handler while processing.
 
         If you need to perform some kind of cleanup, do it here.
         Exceptions raised here will be logged, but otherwise ignored.
@@ -82,7 +82,7 @@ class LoggingHandler(PipelineHandlerBase):
         emsg = ', '.join("%s: %s" % (event['event_type'], event['message_id'])
                          for event in events)
         logger.info(
-            "Pipeline Handler stream name: %s, stream id: %s Received %s events: \n%s " %
+            "Pipeline Handler stream name: %s, id: %s recv: %s events: \n%s " %
             (env['stream_name'], env['stream_id'], len(events), emsg))
         start_time = None
         end_time = None
@@ -99,12 +99,10 @@ class LoggingHandler(PipelineHandlerBase):
         if end_time < start_time:
             return events
 
-        #startup_time = (end_time - start_time).total_seconds()
-
         return events
 
     def commit(self):
-        print "LoggingHandler commit called!"
+        print ("LoggingHandler commit called!")
 
         pass
 

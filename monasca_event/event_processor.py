@@ -52,10 +52,13 @@ def stream_def_to_winchester_format(stream):
     return slist
 
 
-def stream_definition_consumer(kafka_config, lock, trigger_manager):
-    kafka_url = kafka_config['url']
-    group = kafka_config['stream_def_group']
-    topic = kafka_config['stream_def_topic']
+def stream_definition_consumer(oslo_conf, lock, trigger_manager):
+    kafka_url = oslo_conf.kafka.url
+    group = oslo_conf.kafka.stream_def_group
+    topic = oslo_conf.kafka.stream_def_topic
+    fetch_size = oslo_conf.kafka.events_fetch_size_bytes
+    buffer_size = oslo_conf.kafka.events_buffer_size
+    max_buffer = oslo_conf.kafka.events_max_buffer_size
     kafka = KafkaClient(kafka_url)
     consumer = SimpleConsumer(
         kafka,
@@ -65,9 +68,9 @@ def stream_definition_consumer(kafka_config, lock, trigger_manager):
         # auto_commit_every_n=None,
         # auto_commit_every_t=None,
         # iter_timeout=1,
-        fetch_size_bytes=kafka_config['events_fetch_size_bytes'],
-        buffer_size=kafka_config['events_buffer_size'],
-        max_buffer_size=kafka_config['events_max_buffer_size'])
+        fetch_size_bytes=fetch_size,
+        buffer_size=buffer_size,
+        max_buffer_size=max_buffer)
 
     consumer.seek(0, 2)
 
@@ -92,13 +95,16 @@ def stream_definition_consumer(kafka_config, lock, trigger_manager):
             log.error('Unknown event received on stream_def_topic')
 
 
-def event_consumer(kafka_config, lock, trigger_manager):
-    kafka_url = kafka_config['url']
-    group = kafka_config['event_group']
+def event_consumer(oslo_conf, lock, trigger_manager):
+    kafka_url = oslo_conf.kafka.url
+    group = oslo_conf.kafka.event_group
     # read from the 'transformed_events_topic' in the future
     # reading events sent from API POST Event now
-    topic = kafka_config['events_topic']
+    topic = oslo_conf.kafka.events_topic
     kafka = KafkaClient(kafka_url)
+    fetch_size = oslo_conf.kafka.events_fetch_size_bytes
+    buffer_size = oslo_conf.kafka.events_buffer_size
+    max_buffer = oslo_conf.kafka.events_max_buffer_size
     consumer = SimpleConsumer(
         kafka,
         group,
@@ -107,9 +113,9 @@ def event_consumer(kafka_config, lock, trigger_manager):
         # auto_commit_every_n=None,
         # auto_commit_every_t=None,
         # iter_timeout=1,
-        fetch_size_bytes=kafka_config['events_fetch_size_bytes'],
-        buffer_size=kafka_config['events_buffer_size'],
-        max_buffer_size=kafka_config['events_max_buffer_size'])
+        fetch_size_bytes=fetch_size,
+        buffer_size=buffer_size,
+        max_buffer_size=max_buffer)
 
     consumer.seek(0, 2)
 
@@ -151,18 +157,11 @@ class EventProcessor(object):
     criteria has been met.
     """
 
-    def __init__(self, kafka_config, winchester_config):
-        self.kafka_config = kafka_config
-        self.winchester_config = winchester_config
+    def __init__(self, oslo_conf):
+        self.conf = oslo_conf
+        self.winchester_config = oslo_conf.winchester.winchester_config
         self.config_mgr = ConfigManager.load_config_file(
             self.winchester_config)
-
-    # consume_raw is not used, but we could do the transform once here for
-    # openstack events
-    def consume_raw(self):
-        for message in self.consumer:
-            decoded = json.loads(message.message.value)
-            self.trigger_manager.add_notification(decoded)
 
     def run(self):
         """Initialize and start threads.
@@ -183,12 +182,12 @@ class EventProcessor(object):
         self.stream_def_thread = threading.Thread(
             name='stream_defs',
             target=stream_definition_consumer,
-            args=(self.kafka_config, self.tm_lock, self.trigger_manager,))
+            args=(self.conf, self.tm_lock, self.trigger_manager,))
 
         self.event_thread = threading.Thread(
             name='events',
             target=event_consumer,
-            args=(self.kafka_config, self.tm_lock, self.trigger_manager,))
+            args=(self.conf, self.tm_lock, self.trigger_manager,))
 
         self.stream_def_thread.start()
         self.event_thread.start()

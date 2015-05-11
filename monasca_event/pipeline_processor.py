@@ -25,14 +25,16 @@ import event_processor
 from winchester.config import ConfigManager
 from winchester.pipeline_manager import PipelineManager
 
-
 log = logging.getLogger(__name__)
 
 
-def pipe_stream_definition_consumer(kafka_config, lock, pipe):
-    kafka_url = kafka_config['url']
-    group = kafka_config['stream_def_pipe_group']
-    topic = kafka_config['stream_def_topic']
+def pipe_stream_definition_consumer(oslo_conf, lock, pipe):
+    kafka_url = oslo_conf.kafka.url
+    group = oslo_conf.kafka.stream_def_pipe_group
+    topic = oslo_conf.kafka.stream_def_topic
+    fetch_size = oslo_conf.kafka.events_fetch_size_bytes
+    buffer_size = oslo_conf.kafka.events_buffer_size
+    max_buffer = oslo_conf.kafka.events_max_buffer_size
     kafka = KafkaClient(kafka_url)
     consumer = SimpleConsumer(
         kafka,
@@ -42,9 +44,9 @@ def pipe_stream_definition_consumer(kafka_config, lock, pipe):
         # auto_commit_every_n=None,
         # auto_commit_every_t=None,
         # iter_timeout=1,
-        fetch_size_bytes=kafka_config['events_fetch_size_bytes'],
-        buffer_size=kafka_config['events_buffer_size'],
-        max_buffer_size=kafka_config['events_max_buffer_size'])
+        fetch_size_bytes=fetch_size,
+        buffer_size=buffer_size,
+        max_buffer_size=max_buffer)
 
     consumer.seek(0, 2)
 
@@ -82,22 +84,23 @@ class PipelineProcessor(object):
         will need to be initialized with stream definitions dynamically.
     """
 
-    def __init__(self, kafka_config, winchester_config):
-        self.winchester_config = winchester_config
-        self.kafka_config = kafka_config
+    def __init__(self, oslo_conf):
+        self.conf = oslo_conf
+        self.winchester_config = oslo_conf.winchester.winchester_config
         self.config_mgr = ConfigManager.load_config_file(
             self.winchester_config)
 
     def run(self):
         if 'logging_config' in self.config_mgr:
             fileConfig(self.config_mgr['logging_config'])
+        """
         else:
             logging.basicConfig()
             if 'log_level' in self.config_mgr:
                 level = self.config_mgr['log_level']
                 level = getattr(logging, level.upper())
                 logging.getLogger('winchester').setLevel(level)
-
+        """
         self.pm_lock = threading.Lock()
         self.pipe = PipelineManager(self.config_mgr)
 
@@ -107,7 +110,7 @@ class PipelineProcessor(object):
         self.stream_def_thread = threading.Thread(
             name='stream_defs_pipe',
             target=pipe_stream_definition_consumer,
-            args=(self.kafka_config, self.pm_lock, self.pipe,))
+            args=(self.conf, self.pm_lock, self.pipe,))
 
         self.pipeline_ready_thread = threading.Thread(
             name='pipeline',

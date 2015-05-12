@@ -44,7 +44,7 @@ def stream_def_to_winchester_format(stream):
     stream['fire_pipeline'] = DEFAULT_FIRE_HANDLER
     stream['expire_pipeline'] = DEFAULT_EXPIRE_HANDLER
     del stream['stream_definition_id']
-    # expiration must be in python timex package format
+    # expiration in python timex package format
     # convert from milliseconds to microseconds, since no ms support
     stream['expiration'] = '$first + {}us'.format(stream['expiration'] * 1000)
     slist = list()
@@ -52,13 +52,13 @@ def stream_def_to_winchester_format(stream):
     return slist
 
 
-def stream_definition_consumer(oslo_conf, lock, trigger_manager):
-    kafka_url = oslo_conf.kafka.url
-    group = oslo_conf.kafka.stream_def_group
-    topic = oslo_conf.kafka.stream_def_topic
-    fetch_size = oslo_conf.kafka.events_fetch_size_bytes
-    buffer_size = oslo_conf.kafka.events_buffer_size
-    max_buffer = oslo_conf.kafka.events_max_buffer_size
+def stream_definition_consumer(conf, lock, trigger_manager):
+    kafka_url = conf.kafka.url
+    group = conf.kafka.stream_def_group
+    topic = conf.kafka.stream_def_topic
+    fetch_size = conf.kafka.events_fetch_size_bytes
+    buffer_size = conf.kafka.events_buffer_size
+    max_buffer = conf.kafka.events_max_buffer_size
     kafka = KafkaClient(kafka_url)
     consumer = SimpleConsumer(
         kafka,
@@ -95,16 +95,16 @@ def stream_definition_consumer(oslo_conf, lock, trigger_manager):
             log.error('Unknown event received on stream_def_topic')
 
 
-def event_consumer(oslo_conf, lock, trigger_manager):
-    kafka_url = oslo_conf.kafka.url
-    group = oslo_conf.kafka.event_group
+def event_consumer(conf, lock, trigger_manager):
+    kafka_url = conf.kafka.url
+    group = conf.kafka.event_group
     # read from the 'transformed_events_topic' in the future
     # reading events sent from API POST Event now
-    topic = oslo_conf.kafka.events_topic
+    topic = conf.kafka.events_topic
     kafka = KafkaClient(kafka_url)
-    fetch_size = oslo_conf.kafka.events_fetch_size_bytes
-    buffer_size = oslo_conf.kafka.events_buffer_size
-    max_buffer = oslo_conf.kafka.events_max_buffer_size
+    fetch_size = conf.kafka.events_fetch_size_bytes
+    buffer_size = conf.kafka.events_buffer_size
+    max_buffer = conf.kafka.events_max_buffer_size
     consumer = SimpleConsumer(
         kafka,
         group,
@@ -157,9 +157,9 @@ class EventProcessor(object):
     criteria has been met.
     """
 
-    def __init__(self, oslo_conf):
-        self.conf = oslo_conf
-        self.winchester_config = oslo_conf.winchester.winchester_config
+    def __init__(self, conf):
+        self.conf = conf
+        self.winchester_config = conf.winchester.winchester_config
         self.config_mgr = ConfigManager.load_config_file(
             self.winchester_config)
 

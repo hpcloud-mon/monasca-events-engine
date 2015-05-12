@@ -21,20 +21,20 @@ from logging.config import fileConfig
 import threading
 import time
 
-import event_processor
+import monasca_events_engine.event_processor as event_processor
 from winchester.config import ConfigManager
 from winchester.pipeline_manager import PipelineManager
 
 log = logging.getLogger(__name__)
 
 
-def pipe_stream_definition_consumer(oslo_conf, lock, pipe):
-    kafka_url = oslo_conf.kafka.url
-    group = oslo_conf.kafka.stream_def_pipe_group
-    topic = oslo_conf.kafka.stream_def_topic
-    fetch_size = oslo_conf.kafka.events_fetch_size_bytes
-    buffer_size = oslo_conf.kafka.events_buffer_size
-    max_buffer = oslo_conf.kafka.events_max_buffer_size
+def pipe_stream_definition_consumer(conf, lock, pipe):
+    kafka_url = conf.kafka.url
+    group = conf.kafka.stream_def_pipe_group
+    topic = conf.kafka.stream_def_topic
+    fetch_size = conf.kafka.events_fetch_size_bytes
+    buffer_size = conf.kafka.events_buffer_size
+    max_buffer = conf.kafka.events_max_buffer_size
     kafka = KafkaClient(kafka_url)
     consumer = SimpleConsumer(
         kafka,
@@ -84,9 +84,9 @@ class PipelineProcessor(object):
         will need to be initialized with stream definitions dynamically.
     """
 
-    def __init__(self, oslo_conf):
-        self.conf = oslo_conf
-        self.winchester_config = oslo_conf.winchester.winchester_config
+    def __init__(self, conf):
+        self.conf = conf
+        self.winchester_config = conf.winchester.winchester_config
         self.config_mgr = ConfigManager.load_config_file(
             self.winchester_config)
 

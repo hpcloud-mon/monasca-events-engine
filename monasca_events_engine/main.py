@@ -36,9 +36,9 @@ import signal
 import sys
 import time
 
-from event_processor import EventProcessor
+from monasca_events_engine.event_processor import EventProcessor
+from monasca_events_engine.pipeline_processor import PipelineProcessor
 from oslo_config import cfg
-from pipeline_processor import PipelineProcessor
 
 log = logging.getLogger(__name__)
 
@@ -87,27 +87,27 @@ def clean_exit(signum, frame=None):
     sys.exit(0)
 
 
-def register_logging_opts(oslo_conf):
+def register_logging_opts(conf):
     logging_opts = [
         cfg.StrOpt('log_level', default='INFO'),
         cfg.StrOpt('log_file', default='./events_engine.log')]
     logging_group = cfg.OptGroup(name='logging', title='logging')
 
-    oslo_conf.register_group(logging_group)
-    oslo_conf.register_opts(logging_opts, logging_group)
+    conf.register_group(logging_group)
+    conf.register_opts(logging_opts, logging_group)
 
 
-def register_mysql_opts(oslo_conf):
+def register_mysql_opts(conf):
     mysql_opts = [
         cfg.StrOpt('database_name'), cfg.StrOpt('hostname'),
         cfg.StrOpt('username'), cfg.StrOpt('password')]
     mysql_group = cfg.OptGroup(name='mysql', title='mysql')
 
-    oslo_conf.register_group(mysql_group)
-    oslo_conf.register_opts(mysql_opts, mysql_group)
+    conf.register_group(mysql_group)
+    conf.register_opts(mysql_opts, mysql_group)
 
 
-def register_kafka_opts(oslo_conf):
+def register_kafka_opts(conf):
     kafka_opts = [
         cfg.StrOpt('url', help='Address to kafka server. For example: '
                    'url=192.168.10.4:9092'),
@@ -136,47 +136,47 @@ def register_kafka_opts(oslo_conf):
             help='Recommended 8 times the buffer size.')]
 
     kafka_group = cfg.OptGroup(name='kafka', title='title')
-    oslo_conf.register_group(kafka_group)
-    oslo_conf.register_opts(kafka_opts, kafka_group)
+    conf.register_group(kafka_group)
+    conf.register_opts(kafka_opts, kafka_group)
 
 
-def register_winchester_opts(oslo_conf):
+def register_winchester_opts(conf):
     winchester_opts = [
         cfg.StrOpt('winchester_config', default='../etc/winchester.yaml',
                    help='Path to the winchester.yaml file.')]
     winchester_group = cfg.OptGroup(name='winchester', title='title')
-    oslo_conf.register_group(winchester_group)
-    oslo_conf.register_opts(winchester_opts, winchester_group)
+    conf.register_group(winchester_group)
+    conf.register_opts(winchester_opts, winchester_group)
 
 
-def register_event_processor_opts(oslo_conf):
+def register_event_processor_opts(conf):
     event_proc_opts = [
         cfg.IntOpt(
             'number', default=1,
             help='The number of processes to start.')]
     event_proc_group = cfg.OptGroup(name='event_processor', title='title')
-    oslo_conf.register_group(event_proc_group)
-    oslo_conf.register_opts(event_proc_opts, event_proc_group)
+    conf.register_group(event_proc_group)
+    conf.register_opts(event_proc_opts, event_proc_group)
 
 
-def register_pipeline_processor_opts(oslo_conf):
+def register_pipeline_processor_opts(conf):
     pipeline_proc_opts = [
         cfg.IntOpt(
             'number', default=1,
             help='The number of processes to start.')]
     pipeline_proc_group = cfg.OptGroup(
         name='pipeline_processor', title='title')
-    oslo_conf.register_group(pipeline_proc_group)
-    oslo_conf.register_opts(pipeline_proc_opts, pipeline_proc_group)
+    conf.register_group(pipeline_proc_group)
+    conf.register_opts(pipeline_proc_opts, pipeline_proc_group)
 
 
-def register_zookeeper_opts(oslo_conf):
+def register_zookeeper_opts(conf):
     zookeeper_opts = [
         cfg.StrOpt('url', default='notification-events',
                    help='The topic for sending notification events.')]
     zookeeper_group = cfg.OptGroup(name='zookeeper', title='title')
-    oslo_conf.register_group(zookeeper_group)
-    oslo_conf.register_opts(zookeeper_opts, zookeeper_group)
+    conf.register_group(zookeeper_group)
+    conf.register_opts(zookeeper_opts, zookeeper_group)
 
 
 def main(argv=None):
@@ -186,29 +186,30 @@ def main(argv=None):
         config_file = argv[1]
     elif len(argv) > 2:
         print("Usage: " + argv[0] + " <config_file>")
-        print("Config file defaults to /etc/monasca/monasca_event.conf")
+        print(
+            "Config file defaults to /etc/monasca/monasca_events_engine.conf")
         return 1
     else:
-        config_file = '/etc/monasca/monasca_event.conf'
+        config_file = '/etc/monasca/monasca_events_engine.conf'
 
     # init oslo config
     cfg.CONF(args=[],
-             project='monasca_event',
+             project='monasca_events_engine',
              default_config_files=[config_file])
-    oslo_conf = cfg.CONF
+    conf = cfg.CONF
 
     # register oslo config opts
-    register_logging_opts(oslo_conf)
-    register_mysql_opts(oslo_conf)
-    register_kafka_opts(oslo_conf)
-    register_winchester_opts(oslo_conf)
-    register_event_processor_opts(oslo_conf)
-    register_pipeline_processor_opts(oslo_conf)
-    register_zookeeper_opts(oslo_conf)
+    register_logging_opts(conf)
+    register_mysql_opts(conf)
+    register_kafka_opts(conf)
+    register_winchester_opts(conf)
+    register_event_processor_opts(conf)
+    register_pipeline_processor_opts(conf)
+    register_zookeeper_opts(conf)
 
     # Setup python logging
-    log_file = oslo_conf.logging.log_file
-    log_level = oslo_conf.logging.log_level
+    log_file = conf.logging.log_file
+    log_level = conf.logging.log_level
     fh = logging.handlers.RotatingFileHandler(
         log_file, maxBytes=10485760, backupCount=5)
     fh.setFormatter(logging.Formatter(fmt=LOG_FORMAT,
@@ -234,23 +235,24 @@ def main(argv=None):
         ch.setLevel(logging.INFO)
     logging.getLogger('').addHandler(ch)
     logging.getLogger('kafka').setLevel(logging.WARN)
+    logging.getLogger('iso8601').setLevel(logging.WARN)
 
     # create EventProcessor(s)
-    num_event_processors = oslo_conf.event_processor.number
+    num_event_processors = conf.event_processor.number
     log.info('num_event_processors %d', num_event_processors)
     for x in xrange(0, num_event_processors):
         event_processor = multiprocessing.Process(
-            target=EventProcessor(oslo_conf).run
+            target=EventProcessor(conf).run
         )
         processors.append(event_processor)
 
     # create PipelineProcessor(s)
-    num_pipeline_processors = oslo_conf.pipeline_processor.number
+    num_pipeline_processors = conf.pipeline_processor.number
     log.info('num_pipeline_processors %d', num_pipeline_processors)
     for x in xrange(0, num_pipeline_processors):
         pipeline_processor = multiprocessing.Process(
             target=PipelineProcessor(
-                oslo_conf).run
+                conf).run
         )
         processors.append(pipeline_processor)
 

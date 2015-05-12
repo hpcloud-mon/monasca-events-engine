@@ -27,6 +27,6 @@ Requires:
 
 ## Run it      
 ```
-cd monasca_event
-python main.py ../etc/monasca_event.conf 
+cd monasca_events_engine
+python main.py ../etc/monasca_events_engine.conf 
 ```

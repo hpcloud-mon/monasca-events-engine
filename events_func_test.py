@@ -16,6 +16,7 @@
 from datetime import datetime
 import json
 import requests
+import time
 import uuid
 
 from monascaclient import ksclient
@@ -121,7 +122,7 @@ def test_stream_definition_post(tenant_id, name):
     body = {}
 
     notif_resp = requests.get(
-        url="http://192.168.10.4:8080/v2.0/notification-methods",
+        url=notifications_base_url + "/v2.0/notification-methods",
         data=json.dumps(body), headers=headers)
     notif_dict = json.loads(notif_resp.text)
     action_id = str(notif_dict['elements'][0]['id'])
@@ -131,7 +132,7 @@ def test_stream_definition_post(tenant_id, name):
             "description": "provisioning duration",
             "name": name,
             "group_by": ["instance_id"],
-            "expiration": 3000,
+            "expiration": 4000,
             "select": [{"traits": {"tenant_id": tenant_id},
                         "event_type": "compute.instance.create.*"}],
             "fire_actions": [action_id],
@@ -262,5 +263,7 @@ def del_stream_defs():
 
 add_stream_defs()
 add_events_to_fire()
+time.sleep(10)
 add_events_to_expire()
+time.sleep(20)
 del_stream_defs()

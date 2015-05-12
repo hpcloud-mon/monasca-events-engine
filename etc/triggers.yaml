@@ -1,0 +1,38 @@
+---
+- name: test_trigger_406904
+  debug_level: 2
+  distinguished_by:
+  - instance_id
+  expiration: "$last + 24h"
+  fire_pipeline: "test_pipeline"
+  expire_pipeline: "test_expire_pipeline"
+  match_criteria:
+  - event_type: compute.instance.create.*
+    traits:
+      tenant_id: '406904'
+  fire_criteria:
+  - event_type: compute.instance.create.start
+  - event_type: compute.instance.create.end
+
+- name: rackspace_billing
+  debug_level: 2
+  distinguished_by:
+  - instance_id
+  - timestamp: "day"
+  expiration: "$last + 1h"
+  fire_pipeline: "test_pipeline"
+  expire_pipeline: "test_expire_pipeline"
+  match_criteria:
+  - event_type:
+    - compute.instance.*
+    - "!compute.instance.exists"
+#### Traits are optional. 
+#    traits:
+#      os_distro: ubuntu
+#      memory_mb:
+#        numeric: "> 4096"
+  - event_type: compute.instance.exists
+    map_distingushed_by:
+      timestamp: audit_period_beginning
+  fire_criteria:
+  - event_type: compute.instance.exists

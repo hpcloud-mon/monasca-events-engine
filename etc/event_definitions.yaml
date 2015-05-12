@@ -1,0 +1,60 @@
+---
+- event_type: compute.instance.*
+  traits: &instance_traits
+    launched_at:
+      type: datetime
+      fields: payload.launched_at
+    deleted_at:
+      type: datetime
+      fields: payload.deleted_at
+    hostname:
+      fields: payload.hostname
+    host:
+      fields: publisher_id
+    tenant_id:
+      fields:
+        - payload.tenant_id
+        - _context_project_id
+    instance_id:
+      fields:
+        - payload.instance_uuid
+        - payload.instance_id
+        - exception.kwargs.uuid
+        - instance.uuid
+    instance_flavor:
+      fields: 
+        - payload.instance_type
+        - payload.image_meta.instance_type_name
+        - payload.image_meta.instance_type_flavorid
+    instance_flavor_id:
+      fields: 
+        - payload.instance_flavor_id
+        - payload.image_meta.instance_type_flavor_id
+        - payload.instance_type_id
+    instance_type:
+      fields: payload.instance_type
+    state:
+      fields: payload.state
+    os_architecture:
+      fields: payload.image_meta.'org.openstack__1__architecture'
+    os_version:
+      fields: payload.image_meta.'org.openstack__1__os_version'
+    os_distro:
+      fields: payload.image_meta.'org.openstack__1__os_distro'
+    launched_at:
+      type: datetime
+      fields: payload.launched_at
+    deleted_at:
+      type: datetime
+      fields: 
+        - payload.deleted_at
+        - payload.terminated_at
+- event_type: compute.instance.exists
+  traits:
+    <<: *instance_traits
+    audit_period_beginning:
+      type: datetime
+      fields: payload.audit_period_beginning
+    audit_period_ending:
+      type: datetime
+      fields: payload.audit_period_ending

@@ -8,7 +8,7 @@ dist
 run_tests.err.log
 .tox
 *.egg
-monasca_event/versioninfo
+monasca_events_engine/versioninfo
 *.egg-info
 *.log
 .pydevproject

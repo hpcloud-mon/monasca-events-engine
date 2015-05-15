@@ -20,128 +20,14 @@ from kafka import SimpleConsumer
 import logging
 import threading
 
+from monasca_events_engine.event_processor_base import EventProcessorBase
 from winchester.config import ConfigManager
 from winchester.trigger_manager import TriggerManager
 
 log = logging.getLogger(__name__)
 
 
-DEFAULT_FIRE_HANDLER = 'test_pipeline'
-DEFAULT_EXPIRE_HANDLER = 'test_expire_pipeline'
-
-
-def stream_unique_name(stream):
-    return stream['name'] + '_' + stream['tenant_id']
-
-
-def stream_def_to_winchester_format(stream):
-    stream['match_criteria'] = stream['select']
-    del stream['select']
-    stream['distinguished_by'] = stream['group_by']
-    del stream['group_by']
-    stream['name'] = stream_unique_name(stream)
-    del stream['tenant_id']
-    stream['fire_pipeline'] = DEFAULT_FIRE_HANDLER
-    stream['expire_pipeline'] = DEFAULT_EXPIRE_HANDLER
-    del stream['stream_definition_id']
-    # expiration in python timex package format
-    # convert from milliseconds to microseconds, since no ms support
-    stream['expiration'] = '$first + {}us'.format(stream['expiration'] * 1000)
-    slist = list()
-    slist.append(stream)
-    return slist
-
-
-def stream_definition_consumer(conf, lock, trigger_manager):
-    kafka_url = conf.kafka.url
-    group = conf.kafka.stream_def_group
-    topic = conf.kafka.stream_def_topic
-    fetch_size = conf.kafka.events_fetch_size_bytes
-    buffer_size = conf.kafka.events_buffer_size
-    max_buffer = conf.kafka.events_max_buffer_size
-    kafka = KafkaClient(kafka_url)
-    consumer = SimpleConsumer(
-        kafka,
-        group,
-        topic,
-        auto_commit=True,
-        # auto_commit_every_n=None,
-        # auto_commit_every_t=None,
-        # iter_timeout=1,
-        fetch_size_bytes=fetch_size,
-        buffer_size=buffer_size,
-        max_buffer_size=max_buffer)
-
-    consumer.seek(0, 2)
-
-    for s in consumer:
-        offset, message = s
-        stream_def = json.loads(message.value)
-
-        if 'stream-definition-created' in stream_def:
-            log.debug('Received a stream definition created event')
-            stream_create = stream_def_to_winchester_format(
-                stream_def['stream-definition-created'])
-            lock.acquire()
-            trigger_manager.add_trigger_definition(stream_create)
-            lock.release()
-        elif 'stream-definition-deleted' in stream_def:
-            log.debug('Received a stream-definition-deleted event')
-            name = stream_unique_name(stream_def['stream-definition-deleted'])
-            lock.acquire()
-            trigger_manager.delete_trigger_definition(name)
-            lock.release()
-        else:
-            log.error('Unknown event received on stream_def_topic')
-
-
-def event_consumer(conf, lock, trigger_manager):
-    kafka_url = conf.kafka.url
-    group = conf.kafka.event_group
-    # read from the 'transformed_events_topic' in the future
-    # reading events sent from API POST Event now
-    topic = conf.kafka.events_topic
-    kafka = KafkaClient(kafka_url)
-    fetch_size = conf.kafka.events_fetch_size_bytes
-    buffer_size = conf.kafka.events_buffer_size
-    max_buffer = conf.kafka.events_max_buffer_size
-    consumer = SimpleConsumer(
-        kafka,
-        group,
-        topic,
-        auto_commit=True,
-        # auto_commit_every_n=None,
-        # auto_commit_every_t=None,
-        # iter_timeout=1,
-        fetch_size_bytes=fetch_size,
-        buffer_size=buffer_size,
-        max_buffer_size=max_buffer)
-
-    consumer.seek(0, 2)
-
-    for e in consumer:
-        log.debug('Received an event')
-        offset, message = e
-        envelope = json.loads(message.value)
-        event = envelope['event']
-        # convert iso8601 string to a datetime for winchester
-        # Note: the distiller knows how to convert these based on
-        # event_definitions.yaml
-        if 'timestamp' in event:
-            event['timestamp'] = iso8601.parse_date(
-                event['timestamp'],
-                default_timezone=None)
-        if 'launched_at' in event:
-            event['launched_at'] = iso8601.parse_date(
-                event['launched_at'],
-                default_timezone=None)
-
-        lock.acquire()
-        trigger_manager.add_event(event)
-        lock.release()
-
-
-class EventProcessor(object):
+class EventProcessor(EventProcessorBase):
 
     """EventProcessor
 
@@ -158,37 +44,88 @@ class EventProcessor(object):
     """
 
     def __init__(self, conf):
-        self.conf = conf
+        super(EventProcessor, self).__init__(conf)
         self.winchester_config = conf.winchester.winchester_config
         self.config_mgr = ConfigManager.load_config_file(
             self.winchester_config)
+        self.trigger_manager = TriggerManager(self.config_mgr)
+        self.group = conf.kafka.stream_def_group
+        self.tm_lock = threading.Lock()
+
+    def event_consumer(self, conf, lock, trigger_manager):
+        kafka_url = conf.kafka.url
+        group = conf.kafka.event_group
+        # read from the 'transformed_events_topic' in the future
+        topic = conf.kafka.events_topic
+        kafka = KafkaClient(kafka_url)
+        fetch_size = conf.kafka.events_fetch_size_bytes
+        buffer_size = conf.kafka.events_buffer_size
+        max_buffer = conf.kafka.events_max_buffer_size
+        consumer = SimpleConsumer(
+            kafka,
+            group,
+            topic,
+            auto_commit=True,
+            # auto_commit_every_n=None,
+            # auto_commit_every_t=None,
+            # iter_timeout=1,
+            fetch_size_bytes=fetch_size,
+            buffer_size=buffer_size,
+            max_buffer_size=max_buffer)
+
+        consumer.seek(0, 2)
+
+        for e in consumer:
+            log.debug('Received an event')
+            offset, message = e
+            envelope = json.loads(message.value)
+            event = envelope['event']
+            # convert iso8601 string to a datetime for winchester
+            # Note: the distiller knows how to convert these based on
+            # event_definitions.yaml
+            if 'timestamp' in event:
+                event['timestamp'] = iso8601.parse_date(
+                    event['timestamp'],
+                    default_timezone=None)
+            if 'launched_at' in event:
+                event['launched_at'] = iso8601.parse_date(
+                    event['launched_at'],
+                    default_timezone=None)
+
+            lock.acquire()
+            trigger_manager.add_event(event)
+            lock.release()
 
     def run(self):
         """Initialize and start threads.
 
-        The Event Processor needs to initialize the TriggerManager with
-        Trigger Defs from the DB at startup.  It will read the
+        The Event Processor initializes the TriggerManager with
+        Trigger Defs from the DB at startup.  It reads the
         stream-def-events kafka topic for the addition/deletion of
-        stream-defs from the API.  It will read the transformed-events
+        stream-defs from the API.  It reads the transformed-events
         kafka topic for distilled event processing.
         """
 
-        # Initialization
-        self.tm_lock = threading.Lock()
-        self.trigger_manager = TriggerManager(self.config_mgr)
+        # read stream-definitions from DB at startup and add
+        stream_defs = self.stream_defs_from_database()
+        if len(stream_defs) > 0:
+            log.debug(
+                'Loading {} stream definitions from the DB at startup'.format(
+                    len(stream_defs)))
+            self.trigger_manager.add_trigger_definition(stream_defs)
 
-        # TODO(cindy) read stream-definitions from DB at startup and add
-
+        # start threads
         self.stream_def_thread = threading.Thread(
             name='stream_defs',
-            target=stream_definition_consumer,
-            args=(self.conf, self.tm_lock, self.trigger_manager,))
+            target=self.stream_definition_consumer,
+            args=(self.conf, self.tm_lock, self.group, self.trigger_manager,))
 
         self.event_thread = threading.Thread(
             name='events',
-            target=event_consumer,
+            target=self.event_consumer,
             args=(self.conf, self.tm_lock, self.trigger_manager,))
 
+        log.debug('Starting stream_defs and events threads')
         self.stream_def_thread.start()
         self.event_thread.start()
 

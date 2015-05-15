@@ -3,3 +3,7 @@ test_pipeline:
     - logger
 test_expire_pipeline:
     - logger
+notification_fire_pipeline:
+    - notification
+notification_expire_pipeline:
+    - notification_expire

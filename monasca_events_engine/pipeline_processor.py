@@ -13,66 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
-from kafka import KafkaClient
-from kafka import SimpleConsumer
 import logging
 from logging.config import fileConfig
 import threading
 import time
 
-import monasca_events_engine.event_processor as event_processor
+from monasca_events_engine.event_processor_base import EventProcessorBase
 from winchester.config import ConfigManager
 from winchester.pipeline_manager import PipelineManager
 
 log = logging.getLogger(__name__)
 
 
-def pipe_stream_definition_consumer(conf, lock, pipe):
-    kafka_url = conf.kafka.url
-    group = conf.kafka.stream_def_pipe_group
-    topic = conf.kafka.stream_def_topic
-    fetch_size = conf.kafka.events_fetch_size_bytes
-    buffer_size = conf.kafka.events_buffer_size
-    max_buffer = conf.kafka.events_max_buffer_size
-    kafka = KafkaClient(kafka_url)
-    consumer = SimpleConsumer(
-        kafka,
-        group,
-        topic,
-        auto_commit=True,
-        # auto_commit_every_n=None,
-        # auto_commit_every_t=None,
-        # iter_timeout=1,
-        fetch_size_bytes=fetch_size,
-        buffer_size=buffer_size,
-        max_buffer_size=max_buffer)
-
-    consumer.seek(0, 2)
-
-    for s in consumer:
-        offset, message = s
-        stream_def = json.loads(message.value)
-
-        if 'stream-definition-created' in stream_def:
-            log.debug('Received a stream-definition-created event')
-            stream_create = event_processor.stream_def_to_winchester_format(
-                stream_def['stream-definition-created'])
-            lock.acquire()
-            pipe.add_trigger_definition(stream_create)
-            lock.release()
-        elif 'stream-definition-deleted' in stream_def:
-            log.debug('Received a stream-definition-deleted event')
-            name = event_processor.stream_unique_name(
-                stream_def['stream-definition-deleted'])
-            lock.acquire()
-            pipe.delete_trigger_definition(name)
-            lock.release()
-        else:
-            log.error('Unknown event received on stream_def_topic')
-
-
-class PipelineProcessor(object):
+class PipelineProcessor(EventProcessorBase):
 
     """Pipeline Processor
 
@@ -81,42 +34,48 @@ class PipelineProcessor(object):
         The PipelineManager contains a TriggerManager so that
         handlers can optionally add more events to the TriggerManager
         filtered stream. The TriggerManager within the PipelineManager
-        will need to be initialized with stream definitions dynamically.
+        is initialized with stream definitions dynamically.
     """
 
     def __init__(self, conf):
-        self.conf = conf
+        super(PipelineProcessor, self).__init__(conf)
         self.winchester_config = conf.winchester.winchester_config
         self.config_mgr = ConfigManager.load_config_file(
             self.winchester_config)
+        self.group = conf.kafka.stream_def_pipe_group
+        self.pm_lock = threading.Lock()
+        self.pipe = PipelineManager(self.config_mgr)
 
     def run(self):
         if 'logging_config' in self.config_mgr:
             fileConfig(self.config_mgr['logging_config'])
-        """
         else:
             logging.basicConfig()
             if 'log_level' in self.config_mgr:
                 level = self.config_mgr['log_level']
                 level = getattr(logging, level.upper())
                 logging.getLogger('winchester').setLevel(level)
-        """
-        self.pm_lock = threading.Lock()
-        self.pipe = PipelineManager(self.config_mgr)
 
-        #  TODO(cindy) add trigger defs from the DB at startup
+        # read stream-definitions from DB at startup and add
+        stream_defs = self.stream_defs_from_database()
+        if len(stream_defs) > 0:
+            log.debug(
+                'Loading {} stream definitions from the DB at startup'.format(
+                    len(stream_defs)))
+            self.pipe.add_trigger_definition(stream_defs)
 
         # start threads
         self.stream_def_thread = threading.Thread(
             name='stream_defs_pipe',
-            target=pipe_stream_definition_consumer,
-            args=(self.conf, self.pm_lock, self.pipe,))
+            target=self.stream_definition_consumer,
+            args=(self.conf, self.pm_lock, self.group, self.pipe,))
 
         self.pipeline_ready_thread = threading.Thread(
             name='pipeline',
             target=self.pipeline_ready_processor,
             args=(self.pm_lock, self.pipe,))
 
+        log.debug('Starting stream_defs_pipe and pipeline threads')
         self.stream_def_thread.start()
         self.pipeline_ready_thread.start()
 

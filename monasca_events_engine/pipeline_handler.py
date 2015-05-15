@@ -25,7 +25,7 @@ class LoggingHandler(PipelineHandlerBase):
         emsg = ', '.join("%s: %s" % (event['event_type'], event['message_id'])
                          for event in events)
         logger.info(
-            "Pipeline Handler stream name: %s, id: %s recv: %s events: \n%s " %
+            "stream name: %s, id: %s recv: %s events: \n%s " %
             (env['stream_name'], env['stream_id'], len(events), emsg))
         for event in events:
             print (event)
@@ -41,18 +41,62 @@ class LoggingHandler(PipelineHandlerBase):
         pass
 
 
-class StartEndHandler(PipelineHandlerBase):
+class NotificationHandler(PipelineHandlerBase):
+    '''NotificationHandler
 
+    There is a separate instance of the handler for each
+    stream.
+    '''
     def handle_events(self, events, env):
-        emsg = ', '.join("%s: %s" % (event['event_type'], event['message_id'])
-                         for event in events)
-        logger.info(
-            "StartEndHandler Received %s events: \n%s" %
-            (len(events), emsg))
+        self.events = events
+        self.env = env
+
         return events
 
     def commit(self):
-        print ("StartEndHandler!!! in commit")
+        '''commit is where we process the events.
+
+        The events will be sent to the notification
+        engine via kafka message.
+        '''
+        print ("NotificationHandler!!! in commit")
+        emsg = ', '.join("%s: %s" % (event['event_type'], event['message_id'])
+                         for event in self.events)
+        logger.info(
+            "stream name: %s, id: %s recv: %s events: \n%s " %
+            (self.env['stream_name'], self.env['stream_id'],
+             len(self.events), emsg))
+        pass
+
+    def rollback(self):
+        pass
+
+
+class NotificationExpireHandler(PipelineHandlerBase):
+    '''NotificationHandler
+
+    There is a separate instance of the handler for each
+    stream.
+    '''
+    def handle_events(self, events, env):
+        self.events = events
+        self.env = env
+
+        return events
+
+    def commit(self):
+        '''commit is where we process the events.
+
+        The events will be sent to the notification
+        engine via kafka message.
+        '''
+        print ("NotificationExpireHandler!!! in commit")
+        emsg = ', '.join("%s: %s" % (event['event_type'], event['message_id'])
+                         for event in self.events)
+        logger.info(
+            "stream name: %s, id: %s recv: %s events: \n%s " %
+            (self.env['stream_name'], self.env['stream_id'],
+             len(self.events), emsg))
         pass
 
     def rollback(self):

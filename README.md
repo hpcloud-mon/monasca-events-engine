@@ -21,7 +21,6 @@ git clone https://github.com/hpcloud-mon/monasca-events-engine
 Requires:
   - winchester
       https://github.com/stackforge/stacktach-winchester
-      https://github.com/oneilcin/stacktach-winchester (fork with dynamic changes is needed till we merge)
   - mysqlclient
   - mysql winchester DB - currently exists in monasca-vagrant
 

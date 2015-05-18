@@ -21,6 +21,7 @@ import logging
 import threading
 
 from monasca_events_engine.event_processor_base import EventProcessorBase
+import monascastatsd
 from winchester.config import ConfigManager
 from winchester.trigger_manager import TriggerManager
 
@@ -75,8 +76,14 @@ class EventProcessor(EventProcessorBase):
 
         consumer.seek(0, 2)
 
+        statsd = monascastatsd.Client(name='monasca',
+                                      dimensions=self.dimensions)
+        events_consumed = statsd.get_counter('events_consumed')
+        events_persisted = statsd.get_counter('events_persisted')
+
         for e in consumer:
             log.debug('Received an event')
+            events_consumed.increment()
             offset, message = e
             envelope = json.loads(message.value)
             event = envelope['event']
@@ -93,7 +100,11 @@ class EventProcessor(EventProcessorBase):
                     default_timezone=None)
 
             lock.acquire()
-            trigger_manager.add_event(event)
+            try:
+                trigger_manager.add_event(event)
+                events_persisted.increment()
+            except Exception as e:
+                log.exception(e)
             lock.release()
 
     def run(self):

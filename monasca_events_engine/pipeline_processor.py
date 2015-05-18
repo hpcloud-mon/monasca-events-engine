@@ -19,6 +19,7 @@ import threading
 import time
 
 from monasca_events_engine.event_processor_base import EventProcessorBase
+import monascastatsd
 from winchester.config import ConfigManager
 from winchester.pipeline_manager import PipelineManager
 
@@ -84,14 +85,26 @@ class PipelineProcessor(EventProcessorBase):
         log.debug('Exiting')
 
     def pipeline_ready_processor(self, lock, pipe):
+        statsd = monascastatsd.Client(name='monasca',
+                                      dimensions=self.dimensions)
+        fired_streams = statsd.get_counter('fired_streams')
+        expired_streams = statsd.get_counter('expired_streams')
+
         while True:
 
             lock.acquire()
-            fire_ct = pipe.process_ready_streams(
-                pipe.pipeline_worker_batch_size)
-            expire_ct = pipe.process_ready_streams(
-                pipe.pipeline_worker_batch_size,
-                expire=True)
+            try:
+                fire_ct = pipe.process_ready_streams(
+                    pipe.pipeline_worker_batch_size)
+                expire_ct = pipe.process_ready_streams(
+                    pipe.pipeline_worker_batch_size,
+                    expire=True)
+                if fire_ct > 0:
+                    fired_streams.increment()
+                if expire_ct > 0:
+                    expired_streams.increment()
+            except Exception as e:
+                log.exception(e)
             lock.release()
 
             if (pipe.current_time() -

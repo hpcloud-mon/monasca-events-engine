@@ -22,16 +22,19 @@ from monasca_events_engine.common.repositories import exceptions
 from monasca_events_engine.common.repositories.mysql.streams_repository \
     import StreamsRepository
 from monasca_events_engine import stream_helpers as sh
+import monascastatsd
 
 log = logging.getLogger(__name__)
 
 
 class EventProcessorBase(object):
-
     """EventProcessorBase
 
     The base class for the EventProcessor and PipelineProcessor.
     """
+
+    dimensions = {
+        'service': 'monitoring', 'component': 'monasca-events-engine'}
 
     def __init__(self, conf):
         self.conf = conf
@@ -40,7 +43,8 @@ class EventProcessorBase(object):
     def stream_defs_from_database(self):
         slist = list()
         try:
-            stream_definition_rows = self.streams_repo.get_all_stream_definitions()
+            stream_definition_rows = \
+                self.streams_repo.get_all_stream_definitions()
             for row in stream_definition_rows:
                 row['fire_criteria'] = json.loads(row['fire_criteria'])
                 row['select_by'] = json.loads(row['select_by'])
@@ -50,13 +54,13 @@ class EventProcessorBase(object):
                 slist.append(w_stream)
         except exceptions.RepositoryException as e:
             log.error(e)
-        
+
         return slist
 
     def stream_definition_consumer(self, conf, lock, group, manager):
         '''Stream Definition Consumer
 
-        Stream definition consumer runs as a thread for the event consumer and
+        Stream definition consumer runs as a thread for the event processor and
         pipeline processor processes.
 
         :param CONF.cfg conf: the conf object. (clarity, CONF.cfg is global)
@@ -85,6 +89,13 @@ class EventProcessorBase(object):
 
         consumer.seek(0, 2)
 
+        statsd = monascastatsd.Client(name='monasca',
+                                      dimensions=self.dimensions)
+        stream_definitions_created = \
+            statsd.get_counter('stream_definitions_created')
+        stream_definitions_deleted = \
+            statsd.get_counter('stream_definitions_deleted')
+
         for s in consumer:
             offset, message = s
             stream_def = json.loads(message.value)
@@ -96,14 +107,22 @@ class EventProcessorBase(object):
                 slist = list()
                 slist.append(stream_create)
                 lock.acquire()
-                manager.add_trigger_definition(slist)
+                try:
+                    manager.add_trigger_definition(slist)
+                    stream_definitions_created.increment()
+                except Exception as e:
+                    log.exception(e)
                 lock.release()
             elif 'stream-definition-deleted' in stream_def:
                 log.debug('Received a stream-definition-deleted event')
                 name = sh.stream_unique_name(
                     stream_def['stream-definition-deleted'])
                 lock.acquire()
-                manager.delete_trigger_definition(name)
+                try:
+                    manager.delete_trigger_definition(name)
+                    stream_definitions_deleted.increment()
+                except Exception as e:
+                    log.exception(e)
                 lock.release()
             else:
                 log.error('Unknown event received on stream_def_topic')

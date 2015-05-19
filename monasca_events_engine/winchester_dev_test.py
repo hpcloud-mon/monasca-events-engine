@@ -240,7 +240,7 @@ class TriggerTest(object):
         self.pipe = PipelineManager(self.config)
 
     def _add_unique_event(self, e):
-        '''make the static test data contain unique message id's '''
+        # make the static test data contain unique message id
         e['message_id'] = uuid.uuid4()
         self.trigger_manager.add_event(e)
 

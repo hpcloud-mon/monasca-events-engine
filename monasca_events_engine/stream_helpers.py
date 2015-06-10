@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import string
 
 log = logging.getLogger(__name__)
 
@@ -21,8 +22,16 @@ DEFAULT_EXPIRE_HANDLER = 'notification_expire_pipeline'
 
 
 def stream_unique_name(stream):
+    # format for winchester stream
     return stream['name'] + '_' + stream['tenant_id']
 
+def stream_def_name(name):
+    # format for monasca stream_definition
+    response_name = name
+    slist = string.rsplit(name,'_',1)
+    if len(slist) > 0:
+        response_name = slist[0]
+    return response_name
 
 def stream_def_to_winchester_format(stream):
     if 'select' in stream:

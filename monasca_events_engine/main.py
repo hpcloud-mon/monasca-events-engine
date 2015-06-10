@@ -122,7 +122,7 @@ def register_kafka_opts(conf):
                    'group for stream defs for this server'),
         cfg.StrOpt('stream_def_pipe_group', default='streams_pipe_1',
                    help='The group for stream defs for this server'),
-        cfg.StrOpt('notifications_topic', default='notification-events',
+        cfg.StrOpt('notifications_topic', default='stream-notifications',
                    help='The topic for sending notification events.'),
         cfg.StrOpt('transformed_events_topic', default='transformed-events',
                    help='The topic for reading transformed events.'),

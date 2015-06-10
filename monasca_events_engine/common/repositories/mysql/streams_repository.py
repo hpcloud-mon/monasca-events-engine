@@ -11,21 +11,23 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import logging
 import uuid
 
 import MySQLdb
 from oslo_utils import timeutils
 
-from monasca_events_engine.common.repositories import constants
-from monasca_events_engine.common.repositories import exceptions
-from monasca_events_engine.common.repositories.mysql import mysql_repository
+from monasca_events_api.common.repositories import constants
+from monasca_events_api.common.repositories import exceptions
+from monasca_events_api.common.repositories.mysql import mysql_repository
+from monasca_events_api.common.repositories import streams_repository as sdr
+from monasca_events_api.openstack.common import log
 
 
-LOG = logging.getLogger(__name__)
+LOG = log.getLogger(__name__)
 
 
-class StreamsRepository(mysql_repository.MySQLRepository):
+class StreamsRepository(mysql_repository.MySQLRepository,
+                        sdr.StreamsRepository):
 
     base_query = """
           select sd.id, sd.tenant_id, sd.name, sd.description,
@@ -71,7 +73,7 @@ class StreamsRepository(mysql_repository.MySQLRepository):
             raise exceptions.DoesNotExistException
 
     @mysql_repository.mysql_try_catch_block
-    def get_stream_definitions(self, tenant_id, name, offset, limit):
+    def get_stream_definitions(self, tenant_id, name, offset=None, limit=None):
 
         parms = [tenant_id]
 
@@ -207,14 +209,23 @@ class StreamsRepository(mysql_repository.MySQLRepository):
             return
 
         for action in actions:
-            cursor.execute("select id from notification_method where id = %s",
-                           (action.encode('utf8'),))
+            cursor.execute(
+                "select id,type from notification_method where id = %s",
+                (action.encode('utf8'),))
             row = cursor.fetchone()
             if not row:
-                raise exceptions.RepositoryException(
+                raise exceptions.InvalidUpdateException(
                     "Non-existent notification id {} submitted for {} "
                     "notification action".format(action.encode('utf8'),
                                                  action_type.encode('utf8')))
+            else:
+                if row['type'] == 'PAGERDUTY':
+                    raise exceptions.InvalidUpdateException(
+                        "PAGERDUTY action not supported for "
+                        "notification id {} submitted for {} "
+                        "notification action".format(
+                            action.encode('utf8'),
+                            action_type.encode('utf8')))
             cursor.execute("""insert into stream_actions(
                                stream_definition_id,
                                action_type,

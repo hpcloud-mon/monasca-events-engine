@@ -33,6 +33,6 @@ database:
 pipeline_config: pipelines.yaml
 
 pipeline_handlers:
-    notification: monasca_events_engine.pipeline_handler:NotificationHandler
-    notification_expire: monasca_events_engine.pipeline_handler:NotificationExpireHandler
-    logger: monasca_events_engine.pipeline_handler:LoggingHandler
+    notification: monasca_events_engine.pipeline_handlers.notification_handler:NotificationHandler
+    notification_expire: monasca_events_engine.pipeline_handlers.notification_handler:NotificationExpireHandler
+    logger: monasca_events_engine.pipeline_handlers.logging_handler:LoggingHandler

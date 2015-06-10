@@ -31,7 +31,7 @@ event_compute_start = {
     'event_type': 'compute.instance.create.start',
     'service': 'publisher-302689',
     'instance_type': '512MB Standard Instance',
-    'tenant_id': '406904',
+    'tenant_id': 'd2949c81659e405cb7824f0bc49487d6',
     'instance_flavor_id': '2',
     'hostname': 'server-462185',
     'host': 'publisher-302689',
@@ -48,7 +48,7 @@ event_compute_end = {'os_distro': 'com.ubuntu',
                      'message_id': '2ae21707-70ae-48a2-89c0-b08b11dc0b1a',
                      'service': 'publisher-302689',
                      'instance_type': '512MB Standard Instance',
-                     'tenant_id': '406904',
+                     'tenant_id': 'd2949c81659e405cb7824f0bc49487d6',
                      'instance_flavor_id': '2',
                      'hostname': 'server-462185',
                      'host': 'publisher-302689',
@@ -212,36 +212,40 @@ def test_post_event(e, tenant_id, instance_id=None):
 
 
 def add_stream_defs():
-    p1_resp = test_stream_definition_post("406904", "prov_dur_406904")
+    p1_resp = test_stream_definition_post(
+        "d2949c81659e405cb7824f0bc49487d6", "prov_dur")
     p1_data = json.loads(p1_resp.text)
-    p2_resp = test_stream_definition_post("123456", "prov_dur_123456")
-    p2_data = json.loads(p2_resp.text)
     test_stream_definition_get(id=p1_data['id'])
-    test_stream_definition_get(id=p2_data['id'])
     print ("add stream definitions: success")
 
 
 def add_events_to_fire():
     instance_id = str(uuid.uuid1())
-    test_post_event(event_compute_start, "406904", instance_id)
-    test_post_event(event_compute_end, "406904", instance_id)
+    test_post_event(event_compute_start,
+                    "d2949c81659e405cb7824f0bc49487d6",
+                    instance_id)
+    test_post_event(event_compute_end,
+                    "d2949c81659e405cb7824f0bc49487d6",
+                    instance_id)
     # then query the events
-    g_resp = test_events_get(tenant_id="406904")
+    g_resp = test_events_get(tenant_id="d2949c81659e405cb7824f0bc49487d6")
     g_data = json.loads(g_resp.text)
     # see if we got the ones we just added
     instance_cnt = 0
     for e in g_data:
         if e['data']['instance_id'] == instance_id:
             instance_cnt += 1
-    assert instance_cnt == 2
+    assert instance_cnt == 1
     print ("add events to fire: success")
 
 
 def add_events_to_expire():
     instance_id = str(uuid.uuid1())
-    test_post_event(event_compute_start, "123456", instance_id)
+    test_post_event(event_compute_start,
+                    "d2949c81659e405cb7824f0bc49487d6",
+                    instance_id)
     # then query the events
-    g_resp = test_events_get(tenant_id="123456")
+    g_resp = test_events_get(tenant_id="d2949c81659e405cb7824f0bc49487d6")
     g_data = json.loads(g_resp.text)
     # see if we got the ones we just added
     instance_cnt = 0
@@ -253,12 +257,9 @@ def add_events_to_expire():
 
 
 def del_stream_defs():
-    g_resp1 = test_stream_definition_get(name="prov_dur_406904")
-    g_resp2 = test_stream_definition_get(name="prov_dur_123456")
+    g_resp1 = test_stream_definition_get(name="prov_dur")
     g_data1 = json.loads(g_resp1.text)
     test_stream_definition_delete(g_data1[0]['id'])
-    g_data2 = json.loads(g_resp2.text)
-    test_stream_definition_delete(g_data2[0]['id'])
     print ("delete stream definitions: success")
 
 add_stream_defs()

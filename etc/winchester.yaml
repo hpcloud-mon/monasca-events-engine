@@ -26,9 +26,9 @@ catch_all_notifications: false
 database:
     url: mysql://monapi:password@192.168.10.4/winchester
 
-# you can comment out distiller_config, if events are already transformed
+# comment out distiller_config, if events are already transformed
 #distiller_config: event_definitions.yaml
-# you can comment out trigger definitions when using dynamic config
+# comment out trigger definitions when using dynamic config
 #trigger_definitions: triggers.yaml
 pipeline_config: pipelines.yaml
 

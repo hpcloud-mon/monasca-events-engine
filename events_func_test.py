@@ -110,7 +110,7 @@ def test_events_get(id=None, tenant_id=None):
     return response
 
 
-def test_stream_definition_post(tenant_id, name):
+def test_stream_definition_post_no_trait(tenant_id, name):
     headers = {
         'X-Auth-User': 'mini-mon',
         'X-Auth-Key': 'password',
@@ -133,7 +133,43 @@ def test_stream_definition_post(tenant_id, name):
             "name": name,
             "group_by": ["instance_id"],
             "expiration": 4000,
-            "select": [{"traits": {"tenant_id": tenant_id},
+            "select": [{"event_type": "compute.instance.create.*"}],
+            "fire_actions": [action_id],
+            "expire_actions": [action_id]}
+
+    response = requests.post(
+        url=events_base_url + "/v2.0/stream-definitions",
+        data=json.dumps(body),
+        headers=headers)
+    assert response.status_code == 201
+    print("POST /stream-definitions no_trait success")
+    return response
+
+
+def test_stream_definition_post_existing_trait(tenant_id, name):
+    headers = {
+        'X-Auth-User': 'mini-mon',
+        'X-Auth-Key': 'password',
+        'X-Auth-Token': token(),
+        'Accept': 'application/json',
+        'User-Agent': 'python-monascaclient',
+        'Content-Type': 'application/json'}
+
+    body = {}
+
+    notif_resp = requests.get(
+        url=notifications_base_url + "/v2.0/notification-methods",
+        data=json.dumps(body), headers=headers)
+    notif_dict = json.loads(notif_resp.text)
+    action_id = str(notif_dict['elements'][0]['id'])
+
+    body = {"fire_criteria": [{"event_type": "compute.instance.create.start"},
+                              {"event_type": "compute.instance.create.end"}],
+            "description": "provisioning duration",
+            "name": name,
+            "group_by": ["instance_id"],
+            "expiration": 4000,
+            "select": [{"traits": {"hostname": "server-462185"},
                         "event_type": "compute.instance.create.*"}],
             "fire_actions": [action_id],
             "expire_actions": [action_id]}
@@ -143,7 +179,44 @@ def test_stream_definition_post(tenant_id, name):
         data=json.dumps(body),
         headers=headers)
     assert response.status_code == 201
-    print("POST /stream-definitions success")
+    print("POST /stream-definitions existing_trait success")
+    return response
+
+
+def test_stream_definition_post_invalid_trait(tenant_id, name):
+    headers = {
+        'X-Auth-User': 'mini-mon',
+        'X-Auth-Key': 'password',
+        'X-Auth-Token': token(),
+        'Accept': 'application/json',
+        'User-Agent': 'python-monascaclient',
+        'Content-Type': 'application/json'}
+
+    body = {}
+
+    notif_resp = requests.get(
+        url=notifications_base_url + "/v2.0/notification-methods",
+        data=json.dumps(body), headers=headers)
+    notif_dict = json.loads(notif_resp.text)
+    action_id = str(notif_dict['elements'][0]['id'])
+
+    body = {"fire_criteria": [{"event_type": "compute.instance.create.start"},
+                              {"event_type": "compute.instance.create.end"}],
+            "description": "provisioning duration",
+            "name": name,
+            "group_by": ["instance_id"],
+            "expiration": 4000,
+            "select": [{"traits": {"_tenant_id": "462185"},
+                        "event_type": "compute.instance.create.*"}],
+            "fire_actions": [action_id],
+            "expire_actions": [action_id]}
+
+    response = requests.post(
+        url=events_base_url + "/v2.0/stream-definitions",
+        data=json.dumps(body),
+        headers=headers)
+    assert response.status_code == 400
+    print("POST /stream-definitions invalid_trait success")
     return response
 
 
@@ -212,10 +285,19 @@ def test_post_event(e, tenant_id, instance_id=None):
 
 
 def add_stream_defs():
-    p1_resp = test_stream_definition_post(
-        "d2949c81659e405cb7824f0bc49487d6", "prov_dur")
+    p1_resp = test_stream_definition_post_existing_trait(
+        "d2949c81659e405cb7824f0bc49487d6", "existing_trait")
     p1_data = json.loads(p1_resp.text)
     test_stream_definition_get(id=p1_data['id'])
+
+    p2_resp = test_stream_definition_post_no_trait(
+        "d2949c81659e405cb7824f0bc49487d6", "no_trait")
+    p2_data = json.loads(p2_resp.text)
+    test_stream_definition_get(id=p2_data['id'])
+
+    test_stream_definition_post_invalid_trait(
+        "d2949c81659e405cb7824f0bc49487d6", "invalid_trait")
+
     print ("add stream definitions: success")
 
 
@@ -235,7 +317,7 @@ def add_events_to_fire():
     for e in g_data:
         if e['data']['instance_id'] == instance_id:
             instance_cnt += 1
-    assert instance_cnt == 1
+    assert instance_cnt >= 1
     print ("add events to fire: success")
 
 
@@ -252,14 +334,19 @@ def add_events_to_expire():
     for e in g_data:
         if e['data']['instance_id'] == instance_id:
             instance_cnt += 1
-    assert instance_cnt == 1
+    assert instance_cnt >= 1
     print ("add events to expire: success")
 
 
 def del_stream_defs():
-    g_resp1 = test_stream_definition_get(name="prov_dur")
+    g_resp1 = test_stream_definition_get(name="existing_trait")
     g_data1 = json.loads(g_resp1.text)
     test_stream_definition_delete(g_data1[0]['id'])
+
+    g_resp2 = test_stream_definition_get(name="no_trait")
+    g_data2 = json.loads(g_resp2.text)
+    test_stream_definition_delete(g_data2[0]['id'])
+
     print ("delete stream definitions: success")
 
 add_stream_defs()

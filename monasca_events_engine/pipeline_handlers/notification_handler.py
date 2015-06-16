@@ -33,7 +33,7 @@ def build_streams_notification_message(env, events, action_type='FIRE'):
     message = None
     if len(events) > 0:
         stream_name = sh.stream_def_name(env['stream_name'])
-        tenant_id = events[0]['tenant_id']  # use _tenant_id
+        tenant_id = events[0]['_tenant_id']
         streams_repo = StreamsRepository()
         stream_definition_rows = (
             streams_repo.get_stream_definitions(
@@ -43,7 +43,7 @@ def build_streams_notification_message(env, events, action_type='FIRE'):
                 action_id = row['fire_actions']
             else:
                 action_id = row['expire_actions']
-            message = {'tenant_id': events[0]['tenant_id'],
+            message = {'tenant_id': tenant_id,
                        'stream_def': {
                            'name': stream_name,
                            'id': row['id'],

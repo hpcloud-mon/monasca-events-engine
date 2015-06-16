@@ -9,7 +9,7 @@
   match_criteria:
   - event_type: compute.instance.create.*
     traits:
-      tenant_id: '406904'
+      hostname: 'server-462185'
   fire_criteria:
   - event_type: compute.instance.create.start
   - event_type: compute.instance.create.end

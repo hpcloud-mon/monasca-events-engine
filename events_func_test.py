@@ -321,6 +321,55 @@ def add_events_to_fire():
     print ("add events to fire: success")
 
 
+def add_notigen_events_to_fire():
+    instance_id = str(uuid.uuid1())
+    notigen_event_start = []
+    notigen_event_end = []
+
+    for i in range(0, 5):
+        u_start = unique_event(event_compute_start,
+                               "406904",
+                               instance_id)
+        notigen_event_start.append(u_start)
+
+        u_end = unique_event(event_compute_end,
+                             "406904",
+                             instance_id)
+        notigen_event_end.append(u_end)
+
+    headers = {
+        'X-Auth-User': 'mini-mon',
+        'X-Auth-Key': 'password',
+        'X-Auth-Token': token(),
+        'Accept': 'application/json',
+        'User-Agent': 'python-monascaclient',
+        'Content-Type': 'application/json'}
+
+    response = requests.post(
+        url=events_base_url + "/v2.0/events",
+        data=json.dumps(notigen_event_start),
+        headers=headers)
+    assert response.status_code == 204
+
+    response = requests.post(
+        url=events_base_url + "/v2.0/events",
+        data=json.dumps(notigen_event_end),
+        headers=headers)
+    assert response.status_code == 204
+
+    # then query the events
+    g_resp = test_events_get(tenant_id="406904")
+    g_data = json.loads(g_resp.text)
+    # see if we got the ones we just added
+    instance_cnt = 0
+    for e in g_data:
+        if e['data']['instance_id'] == instance_id:
+            instance_cnt += 1
+
+    assert instance_cnt == 2
+    print ("add notigen events to fire: success")
+
+
 def add_events_to_expire():
     instance_id = str(uuid.uuid1())
     test_post_event(event_compute_start,
@@ -351,6 +400,7 @@ def del_stream_defs():
 
 add_stream_defs()
 add_events_to_fire()
+add_notigen_events_to_fire()
 time.sleep(10)
 add_events_to_expire()
 time.sleep(20)

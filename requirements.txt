@@ -6,5 +6,6 @@ PyYAML
 MySQL-python>=1.2.3
 oslo.config>=1.2.1
 oslo.utils
+oslo.log
 pbr>=0.6,!=0.7,<1.0
 winchester

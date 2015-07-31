@@ -1,6 +1,6 @@
 ---
 ###### This adds directories to the search path for other configfiles.
-config_path: ../etc
+config_path: /etc/monasca
 ## It can also be a list:
 #config_path:
 #  - /etc/winchester

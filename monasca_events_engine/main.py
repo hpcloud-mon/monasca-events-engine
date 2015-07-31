@@ -90,7 +90,7 @@ def clean_exit(signum, frame=None):
 def register_logging_opts(conf):
     logging_opts = [
         cfg.StrOpt('log_level', default='INFO'),
-        cfg.StrOpt('log_file', default='./events_engine.log')]
+        cfg.StrOpt('log_file', default='/var/log/monasca/events/events_engine.log')]
     logging_group = cfg.OptGroup(name='logging', title='logging')
 
     conf.register_group(logging_group)
@@ -142,7 +142,7 @@ def register_kafka_opts(conf):
 
 def register_winchester_opts(conf):
     winchester_opts = [
-        cfg.StrOpt('winchester_config', default='../etc/winchester.yaml',
+        cfg.StrOpt('winchester_config', default='/etc/winchester.yaml',
                    help='Path to the winchester.yaml file.')]
     winchester_group = cfg.OptGroup(name='winchester', title='title')
     conf.register_group(winchester_group)

@@ -309,12 +309,13 @@ def add_events_to_fire():
     test_post_event(event_compute_end,
                     "d2949c81659e405cb7824f0bc49487d6",
                     instance_id)
+    time.sleep(1)
     # then query the events
     g_resp = test_events_get(tenant_id="d2949c81659e405cb7824f0bc49487d6")
     g_data = json.loads(g_resp.text)
     # see if we got the ones we just added
     instance_cnt = 0
-    for e in g_data:
+    for e in g_data['elements']:
         if e['data']['instance_id'] == instance_id:
             instance_cnt += 1
     assert instance_cnt >= 1
@@ -357,12 +358,13 @@ def add_notigen_events_to_fire():
         headers=headers)
     assert response.status_code == 204
 
+    time.sleep(1)
     # then query the events
     g_resp = test_events_get(tenant_id="406904")
     g_data = json.loads(g_resp.text)
     # see if we got the ones we just added
     instance_cnt = 0
-    for e in g_data:
+    for e in g_data['elements']:
         if e['data']['instance_id'] == instance_id:
             instance_cnt += 1
 
@@ -380,8 +382,8 @@ def add_events_to_expire():
     g_data = json.loads(g_resp.text)
     # see if we got the ones we just added
     instance_cnt = 0
-    for e in g_data:
-        if e['data']['instance_id'] == instance_id:
+    for e in g_data['elements']:
+        if e['data']['instance_id'] == str(instance_id):
             instance_cnt += 1
     assert instance_cnt >= 1
     print ("add events to expire: success")
@@ -390,11 +392,11 @@ def add_events_to_expire():
 def del_stream_defs():
     g_resp1 = test_stream_definition_get(name="existing_trait")
     g_data1 = json.loads(g_resp1.text)
-    test_stream_definition_delete(g_data1[0]['id'])
+    test_stream_definition_delete(g_data1['elements'][0]['id'])
 
     g_resp2 = test_stream_definition_get(name="no_trait")
     g_data2 = json.loads(g_resp2.text)
-    test_stream_definition_delete(g_data2[0]['id'])
+    test_stream_definition_delete(g_data2['elements'][0]['id'])
 
     print ("delete stream definitions: success")
 

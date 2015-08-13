@@ -74,8 +74,9 @@ def token():
     return ks_client.token
 
 
-def unique_event(e, tenant_id, instance_id=None):
-    e['message_id'] = str(uuid.uuid1())
+def unique_event(ev, tenant_id, instance_id=None):
+    e = dict(ev)
+    e['message_id'] = str(uuid.uuid4())
     # note: event post will change to add _tenant_id to the event
     e['tenant_id'] = tenant_id
     e['timestamp'] = datetime.utcnow().isoformat()

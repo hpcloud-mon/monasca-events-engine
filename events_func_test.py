@@ -23,6 +23,7 @@ from monascaclient import ksclient
 
 
 events_base_url = "http://127.0.0.1:8082"
+# events_base_url = "http://192.168.10.4:8082"
 notifications_base_url = "http://192.168.10.4:8080"
 
 
@@ -286,11 +287,6 @@ def test_post_event(e, tenant_id, instance_id=None):
 
 
 def add_stream_defs():
-    p1_resp = test_stream_definition_post_existing_trait(
-        "d2949c81659e405cb7824f0bc49487d6", "existing_trait")
-    p1_data = json.loads(p1_resp.text)
-    test_stream_definition_get(id=p1_data['id'])
-
     p2_resp = test_stream_definition_post_no_trait(
         "d2949c81659e405cb7824f0bc49487d6", "no_trait")
     p2_data = json.loads(p2_resp.text)
@@ -327,8 +323,9 @@ def add_notigen_events_to_fire():
     instance_id = str(uuid.uuid1())
     notigen_event_start = []
     notigen_event_end = []
+    num_iterations = 5
 
-    for i in range(0, 5):
+    for i in range(0, num_iterations):
         u_start = unique_event(event_compute_start,
                                "406904",
                                instance_id)
@@ -369,7 +366,7 @@ def add_notigen_events_to_fire():
         if e['data']['instance_id'] == instance_id:
             instance_cnt += 1
 
-    assert instance_cnt == 2
+    assert instance_cnt == 2 * num_iterations
     print ("add notigen events to fire: success")
 
 
@@ -391,10 +388,6 @@ def add_events_to_expire():
 
 
 def del_stream_defs():
-    g_resp1 = test_stream_definition_get(name="existing_trait")
-    g_data1 = json.loads(g_resp1.text)
-    test_stream_definition_delete(g_data1['elements'][0]['id'])
-
     g_resp2 = test_stream_definition_get(name="no_trait")
     g_data2 = json.loads(g_resp2.text)
     test_stream_definition_delete(g_data2['elements'][0]['id'])

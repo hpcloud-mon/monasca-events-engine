@@ -22,9 +22,9 @@ import uuid
 from monascaclient import ksclient
 
 
-events_base_url = "http://127.0.0.1:8082"
-# events_base_url = "http://192.168.10.4:8082"
-notifications_base_url = "http://192.168.10.4:8080"
+# events_base_url = "http://127.0.0.1:8082"
+events_base_url = "http://192.168.10.4:8082"
+notifications_base_url = "http://192.168.10.4:8070"
 
 
 event_compute_start = {

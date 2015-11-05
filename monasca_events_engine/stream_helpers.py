@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Hewlett-Packard Development Company, L.P.
+# (C) Copyright 2015 Hewlett Packard Enterprise Development Company LP
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,13 +25,15 @@ def stream_unique_name(stream):
     # format for winchester stream
     return stream['name'] + '_' + stream['tenant_id']
 
+
 def stream_def_name(name):
     # format for monasca stream_definition
     response_name = name
-    slist = string.rsplit(name,'_',1)
+    slist = string.rsplit(name, '_', 1)
     if len(slist) > 0:
         response_name = slist[0]
     return response_name
+
 
 def stream_def_to_winchester_format(stream):
     if 'select' in stream:

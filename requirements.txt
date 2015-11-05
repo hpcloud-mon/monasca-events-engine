@@ -1,5 +1,6 @@
 iso8601
 kafka-python>=0.9.1,<0.9.3
+monasca-common
 monasca-statsd
 python-statsd>=1.6.3
 PyYAML

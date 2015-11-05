@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Hewlett-Packard Development Company, L.P.
+# (C) Copyright 2015 Hewlett Packard Enterprise Development Company LP
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import logging
 import kafka
 from monasca_events_engine.common.repositories.mysql.streams_repository \
     import StreamsRepository
-from monasca_events_engine import stream_helpers as sh
+from monasca_events_engine import stream_helpers
 from oslo_config import cfg
 from winchester.pipeline_handler import PipelineHandlerBase
 
@@ -32,7 +32,7 @@ def date_handler(obj):
 def build_streams_notification_message(env, events, action_type='FIRE'):
     message = None
     if len(events) > 0:
-        stream_name = sh.stream_def_name(env['stream_name'])
+        stream_name = stream_helpers.stream_def_name(env['stream_name'])
         tenant_id = events[0]['_tenant_id']
         streams_repo = StreamsRepository()
         stream_definition_rows = (

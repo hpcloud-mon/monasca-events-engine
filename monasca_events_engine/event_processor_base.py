@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Hewlett-Packard Development Company, L.P.
+# (C) Copyright 2015 Hewlett Packard Enterprise Development Company LP
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,10 +18,10 @@ from kafka import KafkaClient
 from kafka import SimpleConsumer
 import logging
 
-from monasca_events_engine.common.repositories import exceptions
+from monasca_common.repositories import exceptions
 from monasca_events_engine.common.repositories.mysql.streams_repository \
     import StreamsRepository
-from monasca_events_engine import stream_helpers as sh
+from monasca_events_engine import stream_helpers
 import monascastatsd
 
 log = logging.getLogger(__name__)
@@ -38,18 +38,18 @@ class EventProcessorBase(object):
 
     def __init__(self, conf):
         self.conf = conf
-        self.streams_repo = StreamsRepository()
+        self._streams_repo = StreamsRepository()
 
     def stream_defs_from_database(self):
         slist = list()
         try:
             stream_definition_rows = \
-                self.streams_repo.get_all_stream_definitions()
+                self._streams_repo.get_all_stream_definitions()
             for row in stream_definition_rows:
                 row['fire_criteria'] = json.loads(row['fire_criteria'])
                 row['select_by'] = json.loads(row['select_by'])
                 row['group_by'] = json.loads(row['group_by'])
-                w_stream = sh.stream_def_to_winchester_format(
+                w_stream = stream_helpers.stream_def_to_winchester_format(
                     row)
                 slist.append(w_stream)
         except exceptions.RepositoryException as e:
@@ -71,21 +71,12 @@ class EventProcessorBase(object):
         kafka_url = conf.kafka.url
         group = conf.kafka.stream_def_group
         topic = conf.kafka.stream_def_topic
-        fetch_size = conf.kafka.events_fetch_size_bytes
-        buffer_size = conf.kafka.events_buffer_size
-        max_buffer = conf.kafka.events_max_buffer_size
         kafka = KafkaClient(kafka_url)
         consumer = SimpleConsumer(
             kafka,
             group,
             topic,
-            auto_commit=True,
-            # auto_commit_every_n=None,
-            # auto_commit_every_t=None,
-            # iter_timeout=1,
-            fetch_size_bytes=fetch_size,
-            buffer_size=buffer_size,
-            max_buffer_size=max_buffer)
+            auto_commit=True)
 
         consumer.seek(0, 2)
 
@@ -102,7 +93,7 @@ class EventProcessorBase(object):
 
             if 'stream-definition-created' in stream_def:
                 log.debug('Received a stream definition created event')
-                stream_create = sh.stream_def_to_winchester_format(
+                stream_create = stream_helpers.stream_def_to_winchester_format(
                     stream_def['stream-definition-created'])
                 slist = list()
                 slist.append(stream_create)
@@ -112,10 +103,11 @@ class EventProcessorBase(object):
                     stream_definitions_created.increment()
                 except Exception as e:
                     log.exception(e)
-                lock.release()
+                finally:
+                    lock.release()
             elif 'stream-definition-deleted' in stream_def:
                 log.debug('Received a stream-definition-deleted event')
-                name = sh.stream_unique_name(
+                name = stream_helpers.stream_unique_name(
                     stream_def['stream-definition-deleted'])
                 lock.acquire()
                 try:
@@ -123,6 +115,7 @@ class EventProcessorBase(object):
                     stream_definitions_deleted.increment()
                 except Exception as e:
                     log.exception(e)
-                lock.release()
+                finally:
+                    lock.release()
             else:
                 log.error('Unknown event received on stream_def_topic')

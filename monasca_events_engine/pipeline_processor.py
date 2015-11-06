@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Hewlett-Packard Development Company, L.P.
+# (C) Copyright 2015 Hewlett Packard Enterprise Development Company LP
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import logging
-from logging.config import fileConfig
 import threading
 import time
 
@@ -40,22 +39,14 @@ class PipelineProcessor(EventProcessorBase):
 
     def __init__(self, conf):
         super(PipelineProcessor, self).__init__(conf)
-        self.winchester_config = conf.winchester.winchester_config
-        self.config_mgr = ConfigManager.load_config_file(
-            self.winchester_config)
-        self.group = conf.kafka.stream_def_pipe_group
-        self.pm_lock = threading.Lock()
-        self.pipe = PipelineManager(self.config_mgr)
+        self._winchester_config = conf.winchester.winchester_config
+        self._config_mgr = ConfigManager.load_config_file(
+            self._winchester_config)
+        self._group = conf.kafka.stream_def_pipe_group
+        self._pm_lock = threading.Lock()
+        self._pipe = PipelineManager(self._config_mgr)
 
     def run(self):
-        if 'logging_config' in self.config_mgr:
-            fileConfig(self.config_mgr['logging_config'])
-        else:
-            logging.basicConfig()
-            if 'log_level' in self.config_mgr:
-                level = self.config_mgr['log_level']
-                level = getattr(logging, level.upper())
-                logging.getLogger('winchester').setLevel(level)
 
         # read stream-definitions from DB at startup and add
         stream_defs = self.stream_defs_from_database()
@@ -63,18 +54,18 @@ class PipelineProcessor(EventProcessorBase):
             log.debug(
                 'Loading {} stream definitions from the DB at startup'.format(
                     len(stream_defs)))
-            self.pipe.add_trigger_definition(stream_defs)
+            self._pipe.add_trigger_definition(stream_defs)
 
         # start threads
         self.stream_def_thread = threading.Thread(
             name='stream_defs_pipe',
             target=self.stream_definition_consumer,
-            args=(self.conf, self.pm_lock, self.group, self.pipe,))
+            args=(self.conf, self._pm_lock, self._group, self._pipe,))
 
         self.pipeline_ready_thread = threading.Thread(
             name='pipeline',
             target=self.pipeline_ready_processor,
-            args=(self.pm_lock, self.pipe,))
+            args=(self._pm_lock, self._pipe,))
 
         log.debug('Starting stream_defs_pipe and pipeline threads')
         self.stream_def_thread.start()
@@ -105,7 +96,8 @@ class PipelineProcessor(EventProcessorBase):
                     expired_streams.increment()
             except Exception as e:
                 log.exception(e)
-            lock.release()
+            finally:
+                lock.release()
 
             if (pipe.current_time() -
                     pipe.last_status).seconds > pipe.statistics_period:

@@ -16,18 +16,16 @@ import uuid
 import MySQLdb
 from oslo_utils import timeutils
 
-from monasca_events_api.common.repositories import constants
-from monasca_events_api.common.repositories import exceptions
-from monasca_events_api.common.repositories.mysql import mysql_repository
-from monasca_events_api.common.repositories import streams_repository as sdr
+from monasca_common.repositories import constants
+from monasca_common.repositories import exceptions
+from monasca_common.repositories.mysql import mysql_repository
 from oslo_log import log
 
 
 LOG = log.getLogger(__name__)
 
 
-class StreamsRepository(mysql_repository.MySQLRepository,
-                        sdr.StreamsRepository):
+class StreamsRepository(mysql_repository.MySQLRepository):
 
     base_query = """
           select sd.id, sd.tenant_id, sd.name, sd.description,

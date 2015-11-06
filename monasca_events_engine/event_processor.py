@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Hewlett-Packard Development Company, L.P.
+# (C) Copyright 2015 Hewlett Packard Enterprise Development Company LP
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,33 +46,23 @@ class EventProcessor(EventProcessorBase):
 
     def __init__(self, conf):
         super(EventProcessor, self).__init__(conf)
-        self.winchester_config = conf.winchester.winchester_config
-        self.config_mgr = ConfigManager.load_config_file(
-            self.winchester_config)
-        self.trigger_manager = TriggerManager(self.config_mgr)
-        self.group = conf.kafka.stream_def_group
-        self.tm_lock = threading.Lock()
+        self._winchester_config = conf.winchester.winchester_config
+        self._config_mgr = ConfigManager.load_config_file(
+            self._winchester_config)
+        self._trigger_manager = TriggerManager(self._config_mgr)
+        self._group = conf.kafka.stream_def_group
+        self._tm_lock = threading.Lock()
 
     def event_consumer(self, conf, lock, trigger_manager):
         kafka_url = conf.kafka.url
         group = conf.kafka.event_group
-        # read from the 'transformed_events_topic' in the future
         topic = conf.kafka.events_topic
         kafka = KafkaClient(kafka_url)
-        fetch_size = conf.kafka.events_fetch_size_bytes
-        buffer_size = conf.kafka.events_buffer_size
-        max_buffer = conf.kafka.events_max_buffer_size
         consumer = SimpleConsumer(
             kafka,
             group,
             topic,
-            auto_commit=True,
-            # auto_commit_every_n=None,
-            # auto_commit_every_t=None,
-            # iter_timeout=1,
-            fetch_size_bytes=fetch_size,
-            buffer_size=buffer_size,
-            max_buffer_size=max_buffer)
+            auto_commit=True)
 
         consumer.seek(0, 2)
 
@@ -87,25 +77,27 @@ class EventProcessor(EventProcessorBase):
             offset, message = e
             envelope = json.loads(message.value)
             event = envelope['event']
-            # convert iso8601 string to a datetime for winchester
-            # Note: the distiller knows how to convert these based on
-            # event_definitions.yaml
+
             if 'timestamp' in event:
                 event['timestamp'] = iso8601.parse_date(
                     event['timestamp'],
                     default_timezone=None)
-            if 'launched_at' in event:
-                event['launched_at'] = iso8601.parse_date(
-                    event['launched_at'],
-                    default_timezone=None)
 
             lock.acquire()
             try:
+                # should have add_event return True or False
+                prev_saved_events = trigger_manager.saved_events
                 trigger_manager.add_event(event)
-                events_persisted.increment()
+                if trigger_manager.saved_events > prev_saved_events:
+                    events_persisted.increment()
+                else:
+                    log.warning(
+                        'Invalid or Duplicate Event. '
+                        'Could not add_event to mysql.')
             except Exception as e:
                 log.exception(e)
-            lock.release()
+            finally:
+                lock.release()
 
     def run(self):
         """Initialize and start threads.
@@ -123,18 +115,19 @@ class EventProcessor(EventProcessorBase):
             log.debug(
                 'Loading {} stream definitions from the DB at startup'.format(
                     len(stream_defs)))
-            self.trigger_manager.add_trigger_definition(stream_defs)
+            self._trigger_manager.add_trigger_definition(stream_defs)
 
         # start threads
         self.stream_def_thread = threading.Thread(
             name='stream_defs',
             target=self.stream_definition_consumer,
-            args=(self.conf, self.tm_lock, self.group, self.trigger_manager,))
+            args=(self.conf, self._tm_lock, self._group,
+                  self._trigger_manager,))
 
         self.event_thread = threading.Thread(
             name='events',
             target=self.event_consumer,
-            args=(self.conf, self.tm_lock, self.trigger_manager,))
+            args=(self.conf, self._tm_lock, self._trigger_manager,))
 
         log.debug('Starting stream_defs and events threads')
         self.stream_def_thread.start()
